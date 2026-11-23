@@ -1,0 +1,31 @@
+import fs from 'fs';
+const S=process.argv[2];
+const C=JSON.parse(fs.readFileSync(S+'/chirps_window.json'));
+const g=C.grid, LAT0=19.112, LON0=-98.258;
+const years=[...Array(11)].map((_,i)=>2010+i), base=years.filter(y=>y!==2018), M=['05','06','07','08','09','10'];
+const dist=(la,lo)=>{const dy=(la-LAT0)*111.2, dx=(lo-LON0)*111.2*Math.cos(LAT0*Math.PI/180);return Math.hypot(dx,dy)};
+const cells=[];for(let j=0;j<g.h;j++)for(let i=0;i<g.w;i++){const lat=g.lat0+(j+.5)*g.dy, lon=g.lon0+(i+.5)*g.dx;cells.push({i,j,lat,lon,d:dist(lat,lon)})}
+const season=(y,k)=>M.reduce((s,m)=>s+C.months[y+'-'+m][k],0);
+const mean=a=>a.reduce((s,v)=>s+v,0)/a.length;
+const cellOut=cells.map((c,k)=>{const b=mean(base.map(y=>season(y,k)));const v=season(2018,k);return{lat:+c.lat.toFixed(3),lon:+c.lon.toFixed(3),d:+c.d.toFixed(1),base:Math.round(b),y2018:Math.round(v),anom:Math.round((v/b-1)*1000)/10}});
+const rings=[[0,5],[5,15],[15,30],[30,55]];
+const ringOut=rings.map(([a,b])=>{const ks=cells.map((c,k)=>c.d>=a&&c.d<b?k:-1).filter(k=>k>=0);
+ const byYear=Object.fromEntries(years.map(y=>[y,Math.round(mean(ks.map(k=>season(y,k))))]));
+ const monthly=Object.fromEntries(M.map(m=>[m,{y2018:Math.round(mean(ks.map(k=>C.months['2018-'+m][k]))),base:Math.round(mean(base.flatMap(y=>ks.map(k=>C.months[y+'-'+m][k]))))}]));
+ const bm=mean(base.map(y=>byYear[y]));
+ return{label:`${a}–${b} km`,n:ks.length,byYear,baseMean:Math.round(bm),anom2018:Math.round((byYear[2018]/bm-1)*1000)/10,monthly}});
+// ERA5
+const D=JSON.parse(fs.readFileSync(S+'/om/daily.json')).daily, H=JSON.parse(fs.readFileSync(S+'/om/soil.json')).hourly;
+const monthAgg=(times,vals,fn)=>{const o={};times.forEach((t,i)=>{const k=t.slice(0,7);(o[k]??=[]).push(vals[i])});return Object.fromEntries(Object.entries(o).map(([k,v])=>[k,fn(v.filter(x=>x!=null))]))};
+const sum=a=>a.reduce((s,v)=>s+v,0);
+const era={precip:monthAgg(D.time,D.precipitation_sum,sum),cloud:monthAgg(D.time,D.cloud_cover_mean,mean),et0:monthAgg(D.time,D.et0_fao_evapotranspiration,sum),tmax:monthAgg(D.time,D.temperature_2m_max,mean),soil:monthAgg(H.time,H.soil_moisture_7_to_28cm,mean),soilDeep:monthAgg(H.time,H.soil_moisture_28_to_100cm,mean)};
+const MM=['04','05','06','07','08','09','10','11'];
+const eraOut=Object.fromEntries(Object.entries(era).map(([k,o])=>[k,MM.map(m=>({m,y2018:+o['2018-'+m].toFixed(3),base:+mean(base.map(y=>o[y+'-'+m])).toFixed(3),min:+Math.min(...base.map(y=>o[y+'-'+m])).toFixed(3),max:+Math.max(...base.map(y=>o[y+'-'+m])).toFixed(3)}))]));
+const daily2018=D.time.map((t,i)=>({t,p:D.precipitation_sum[i],c:D.cloud_cover_mean[i]})).filter(d=>d.t>='2018-05-01'&&d.t<='2018-10-31');
+const top=[...daily2018].sort((a,b)=>b.p-a.p).slice(0,12);
+fs.writeFileSync(S+'/data.json',JSON.stringify({grid:{w:g.w,h:g.h,lon0:g.lon0,lat0:g.lat0,dx:g.dx,dy:g.dy},cells:cellOut,rings:ringOut,era:eraOut,daily2018}));
+console.log(JSON.stringify(ringOut.map(r=>[r.label,r.n,r.baseMean,r.byYear[2018],r.anom2018])));
+console.log('plant cell', cellOut.sort((a,b)=>a.d-b.d)[0]);
+for(const k of ['precip','cloud','soil'])console.log(k,JSON.stringify(eraOut[k].map(x=>[x.m,x.y2018,x.base])));
+console.log('top days',JSON.stringify(top));
+const an=cellOut.map(c=>c.anom);console.log('anom range',Math.min(...an),Math.max(...an),mean(an).toFixed(1));

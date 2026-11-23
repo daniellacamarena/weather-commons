@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weather Commons Archive</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@400;600;700&display=swap">
+<style>
+/* Same printed black-on-white treatment as the plates. Deliberately single-theme. */
+:root{--paper:#ffffff;--ink:#000000;--soft:#3a3a3a;--tint:#f2f2f2;
+  --head:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;--mono:"IBM Plex Mono",Consolas,monospace;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--head);font-size:16px;line-height:1.5;
+  padding:28px max(16px,env(safe-area-inset-left,0px)) 48px max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+a{color:var(--ink)}
+h1{font-size:clamp(1.8rem,4.4vw,2.8rem);font-weight:700;letter-spacing:.02em;text-transform:uppercase;margin:0;line-height:1.05;text-wrap:balance}
+h2{font-size:1.25rem;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px}
+h3{font-size:1.05rem;text-transform:uppercase;letter-spacing:.04em;margin:0}
+.sub{font-family:var(--mono);font-size:.85rem;color:var(--soft);margin:8px 0 0;max-width:80ch}
+.mono{font-family:var(--mono);font-size:.8rem;color:var(--soft)}
+p{margin:0}
+.lede{max-width:70ch;font-size:1.05rem}
+button{font:inherit;color:inherit;background:var(--paper);border:2px solid var(--ink);cursor:pointer}
+button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.sitenav{display:flex;justify-content:space-between;align-items:center;gap:8px 20px;flex-wrap:wrap;border-bottom:2px solid #000;padding-bottom:10px}.sitenav .home{font-weight:700;letter-spacing:.04em;text-decoration:none}.sitenav ul{display:flex;flex-wrap:wrap;gap:4px 18px;list-style:none;margin:0;padding:0;font-family:var(--mono);font-size:.82rem}.sitenav a{display:inline-block;padding:6px 0}.sitenav a[aria-current=page]{font-weight:600;text-decoration-thickness:3px}
+section{display:flex;flex-direction:column;gap:14px}
+.secthead{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;border-top:2px solid var(--ink);padding-top:12px}
+
+/* strands */
+.strand{display:inline-block;font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;border:1.5px solid var(--ink);padding:1px 6px;white-space:nowrap}
+.strand.ritual{background:var(--ink);color:var(--paper)}
+.strand.science{border-style:solid}
+.strand.capital{border-style:dashed}
+
+/* carousel */
+.carousel{position:relative}
+.track{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:4px 2px 14px;overscroll-behavior-x:contain}
+.track::-webkit-scrollbar{height:8px}.track::-webkit-scrollbar-thumb{background:var(--ink)}
+.card{flex:0 0 min(420px,82vw);scroll-snap-align:start;border:2px solid var(--ink);display:flex;flex-direction:column;background:var(--paper)}
+.card .img{aspect-ratio:4/3;background:var(--tint);border-bottom:2px solid var(--ink);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.card img{width:100%;height:100%;object-fit:contain;display:block;background:var(--tint)}
+.card .noimg{font-family:var(--mono);font-size:.8rem;color:var(--soft);padding:20px;text-align:center}
+.card .noimg b{display:block;font-family:var(--head);font-size:2.6rem;color:var(--ink);line-height:1}
+.card .txt{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.card .when{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .when b{font-size:1.4rem}
+.card .credit{font-family:var(--mono);font-size:.7rem;color:var(--soft);margin-top:auto}
+.ctrl{display:flex;gap:8px;align-items:center}
+.ctrl button{width:44px;height:44px;font-size:1.2rem;font-weight:700}
+.ctrl .count{font-family:var(--mono);font-size:.8rem;min-width:5ch;text-align:center}
+
+/* myth */
+.myth{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:0;border:2px solid var(--ink)}
+.myth>div{padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.myth>div+div{border-left:2px solid var(--ink)}
+@media (max-width:860px){.myth>div+div{border-left:0;border-top:2px solid var(--ink)}}
+.myth .nah{font-family:var(--mono);font-size:.78rem;color:var(--soft)}
+.myth figure{margin:0;border:1px solid var(--ink);background:var(--tint);aspect-ratio:4/3;position:relative;overflow:hidden}
+.myth figure img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.link{border-top:1px solid var(--ink);padding-top:8px;font-size:.92rem}
+
+/* timeline */
+.timeline{list-style:none;margin:0;padding:0;border-left:3px solid var(--ink);margin-left:8px}
+.timeline li{position:relative;padding:0 0 18px 24px;display:grid;grid-template-columns:150px 1fr;gap:6px 16px}
+@media (max-width:640px){.timeline li{grid-template-columns:1fr}}
+.timeline li::before{content:"";position:absolute;left:-9px;top:6px;width:15px;height:15px;border-radius:50%;background:var(--paper);border:3px solid var(--ink)}
+.timeline li.ritual::before{background:var(--ink)}
+.timeline li.capital::before{border-style:dashed}
+.timeline .yr{font-weight:700;font-size:1.1rem}
+.timeline .yr .strand{margin-top:4px;display:block;width:fit-content}
+.timeline p{font-size:.96rem}
+
+/* gallery */
+.filters{display:flex;gap:0;border:2px solid var(--ink);flex-wrap:wrap;width:fit-content;max-width:100%}
+.filters button{border:0;padding:8px 14px;min-height:44px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.82rem}
+.filters button+button{border-left:2px solid var(--ink)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.tile{border:2px solid var(--ink);padding:0;text-align:left;display:flex;flex-direction:column;background:var(--paper)}
+.tile .img{aspect-ratio:1;background:var(--tint);border-bottom:2px solid var(--ink);display:flex;overflow:hidden}
+.tile img{width:100%;height:100%;object-fit:cover;display:block}
+.tile span{padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.tile b{font-size:.95rem;line-height:1.2}
+.tile[hidden]{display:none}
+dialog{border:2px solid var(--ink);padding:0;max-width:min(980px,94vw);width:100%;background:var(--paper);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.72)}
+dialog .lb{display:grid;grid-template-columns:1.4fr 1fr}
+@media (max-width:760px){dialog .lb{grid-template-columns:1fr}}
+dialog .lb .img{background:var(--tint);display:flex;align-items:center;justify-content:center;min-height:300px;max-height:78vh}
+dialog .lb img{max-width:100%;max-height:78vh;object-fit:contain;display:block}
+dialog .lb .txt{padding:18px;display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--ink)}
+@media (max-width:760px){dialog .lb .txt{border-left:0;border-top:2px solid var(--ink)}}
+dialog .close{position:absolute;top:8px;right:8px;width:44px;height:44px;font-size:1.2rem;font-weight:700}
+.src{font-family:var(--mono);font-size:.78rem;color:var(--soft);border-top:1px solid var(--ink);padding-top:12px}
+</style>
+</head>
+<body>
+<main>
+  <nav class="sitenav" aria-label="Site"><a class="home" href="index.html">WEATHER COMMONS</a><ul><li><a href="index.html">Globe</a></li><li><a href="comparison.html">Comparison</a></li><li><a href="hail-cannon-2018.html">Hail cannon</a></li><li><a href="tiemperos-2025.html">Tiemperos</a></li><li><a href="archive.html" aria-current="page">Archive</a></li></ul></nav>
+
+  <header>
+    <h1>Archive: where did this history begin?</h1>
+    <p class="sub">Three strands that keep crossing: rituals that ask for rain, instruments that measure it, and machines that try to command it.</p>
+  </header>
+  <p class="lede">Long before anyone fired a cannon at a cloud, people in central Mexico read the weather, named its powers and climbed mountains to ask for rain. Then came written observations, instruments and observatories. Then came machines sold to stop hail or make rain. The tiemperos and the hail cannon at VW Puebla are the latest meeting of these strands.</p>
+  <div class="mono" style="display:flex;gap:16px;flex-wrap:wrap"><span><span class="strand ritual">ritual</span> asking the weather</span><span><span class="strand science">science</span> measuring the weather</span><span><span class="strand capital">capital</span> commanding the weather</span></div>
+
+  <!-- carousel -->
+  <section aria-labelledby="obs-h">
+    <div class="secthead">
+      <div><h2 id="obs-h">Ways of watching the sky</h2><p class="mono">From calendar signs to satellites. Scroll sideways, or use the arrows.</p></div>
+      <div class="ctrl"><button type="button" id="prev" aria-label="Previous">←</button><span class="count" id="count" aria-live="polite"></span><button type="button" id="next" aria-label="Next">→</button></div>
+    </div>
+    <div class="carousel"><div class="track" id="track" tabindex="0" aria-label="Observations, oldest first"></div></div>
+  </section>
+
+  <!-- myth -->
+  <section aria-labelledby="myth-h">
+    <div class="secthead"><div><h2 id="myth-h">Who owned the rain</h2><p class="mono">In the Nahua world the rain was not a resource. It belonged to someone, and had to be asked for.</p></div></div>
+    <div class="myth">
+      <div>
+        <figure><img loading="lazy" src="https://commons.wikimedia.org/wiki/Special:FilePath/Tlaloc_Codex_Borgia.jpg?width=900" alt="Tlaloc in the Codex Borgia, painted with goggle eyes and fangs, holding lightning"></figure>
+        <h3>Tlaloc</h3>
+        <p class="nah">Nahuatl · lord of rain, lightning and hail</p>
+        <p>Tlaloc lived in the mountains, where clouds are made. He brought the rain that grew the maize, and also the hail, frost and floods that ruined it. His helpers, the tlaloque, kept the water in jars; when they struck the jars, thunder sounded and rain fell. The Mexica asked him for rain on the summit of Mount Tlaloc, east of the Valley of Mexico.</p>
+        <p class="link">The tiemperos still climb the volcanoes, which are counted among the tlaloque, to ask for rain. <a href="tiemperos-2025.html">See the tiemperos →</a></p>
+      </div>
+      <div>
+        <figure><img loading="lazy" src="https://commons.wikimedia.org/wiki/Special:FilePath/Codex_Borbonicus_(p._5).jpg?width=900" alt="Chalchiuhtlicue in the Codex Borbonicus, seated, with a stream of water flowing from her"></figure>
+        <h3>Chalchiuhtlicue</h3>
+        <p class="nah">Nahuatl · “she of the jade skirt”</p>
+        <p>Tlaloc’s companion ruled the water once it reached the ground: rivers, lakes, springs and the sea. In Horton’s terms she governs everything after precipitation. Springs, where ground water comes back to the surface, were her places, and they still are places of ritual.</p>
+        <p class="link">On 3 May the tiemperos place crosses at springs. <a href="comparison.html">Follow step 12 →</a></p>
+      </div>
+      <div>
+        <figure><img loading="lazy" src="https://commons.wikimedia.org/wiki/Special:FilePath/Detalle_de_mural_del_Tlalocan_de_Tepantitla_-_Teotihuacan.jpg?width=900" alt="Detail of the Tlalocan mural from Tepantitla, Teotihuacan: small figures playing among plants and water"></figure>
+        <h3>Tlalocan</h3>
+        <p class="nah">Nahuatl · “the place of Tlaloc”</p>
+        <p>Tlaloc’s paradise, always green and always wet. People who died by water or by lightning went there. A mural at Tepantitla in Teotihuacan, painted centuries before the Mexica, is often read as an image of it.</p>
+        <p class="link">The tiemperos are often chosen by lightning: people struck who survived. Lightning marks a bond with Tlaloc’s world.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- timeline -->
+  <section aria-labelledby="tl-h">
+    <div class="secthead"><div><h2 id="tl-h">How the strands cross</h2><p class="mono">A working timeline. Each entry is tagged by strand.</p></div></div>
+    <ol class="timeline">
+      <li class="ritual"><div class="yr">c. 200–650 CE<span class="strand ritual">ritual</span></div><p>Teotihuacan paints the Tlalocan murals at Tepantitla. Water, mountains and rain are already at the centre of the city’s imagery.</p></li>
+      <li class="ritual"><div class="yr">Before 1521<span class="strand ritual">ritual</span></div><p>The Codex Borgia, probably painted in the Puebla–Tlaxcala region, shows Tlaloc in the 260-day calendar. Rain is one of the 20 day signs, so weather is built into the count of time itself.</p></li>
+      <li class="ritual"><div class="yr">1500s<span class="strand ritual">ritual</span></div><p>The Mexica hold yearly rain ceremonies for Tlaloc, from the dry season to the harvest, on mountain tops and at springs and lakes.</p></li>
+      <li class="science"><div class="yr">1577<span class="strand science">science</span></div><p>Bernardino de Sahagún and Nahua scholars complete the Florentine Codex. Book 7 records Nahua knowledge of the sun, moon, stars, winds, clouds, rain and hail, written down by a missionary project that was also meant to root out the old rituals.</p></li>
+      <li class="science"><div class="yr">1788–1795<span class="strand science">science</span></div><p>José Antonio Alzate publishes the <i>Gazetas de Literatura de México</i>, a journal of natural science that includes notes on the weather of the Valley of Mexico.</p></li>
+      <li class="science"><div class="yr">1877<span class="strand science">science</span></div><p>The Observatorio Meteorológico Central opens in Mexico City under Mariano Bárcena. Weather becomes a matter of the state, measured at stations and sent by telegraph.</p></li>
+      <li class="capital"><div class="yr">1896<span class="strand capital">capital</span></div><p>In Styria, Austria, the vineyard owner Albert Stiger builds “vortex guns” to fire at hail clouds. The idea spreads across European wine regions within a few years.</p></li>
+      <li class="capital"><div class="yr">1902<span class="strand capital">capital</span></div><p>Stiger guns are fired at the sky in Charleville, Queensland, Australia, during a drought. No rain follows, and the trial is abandoned.</p></li>
+      <li class="capital"><div class="yr">1946<span class="strand capital">capital</span></div><p>Vincent Schaefer, working for General Electric in the United States, makes snow form in a cloud by dropping dry ice into it. Cloud seeding begins as an industrial and military technology.</p></li>
+      <li class="ritual"><div class="yr">1989 onward<span class="strand ritual">ritual</span></div><p>Anthropologist Julio Glockner documents the tiemperos of Popocatépetl and Iztaccíhuatl, who still climb to caves and crosses on the ritual calendar.</p></li>
+      <li class="capital"><div class="yr">2018<span class="strand capital">capital</span></div><p>VW de México fires three hail cannons at storm clouds over its plant in Puebla. Farmers nearby blame them for a dry season. <a href="hail-cannon-2018.html">See the hail cannon →</a></p></li>
+      <li class="science"><div class="yr">Now<span class="strand science">science</span></div><p>Satellites image every cloud over Mexico every 10 minutes. <a href="index.html">See them on the globe →</a></p></li>
+    </ol>
+  </section>
+
+  <!-- gallery -->
+  <section aria-labelledby="gal-h">
+    <div class="secthead">
+      <div><h2 id="gal-h">Gallery</h2><p class="mono">Every image in the archive. Select one to see it larger with its source.</p></div>
+      <div class="filters" role="group" aria-label="Filter by strand">
+        <button type="button" data-f="all" aria-pressed="true">All</button>
+        <button type="button" data-f="ritual" aria-pressed="false">Ritual</button>
+        <button type="button" data-f="science" aria-pressed="false">Science</button>
+        <button type="button" data-f="capital" aria-pressed="false">Capital</button>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <p class="src">Images from Wikimedia Commons, shown at their source address; select any image for its file page and licence. The Tlalocan mural photograph is by Juan Carlos Fonseca Mata, CC BY-SA 4.0. The two line drawings are part of this project. Facts in the timeline are general history; check each against a cited source before publishing, especially dates for Teotihuacan and the Codex Borgia, which scholars give as ranges.</p>
+</main>
+
+<dialog id="lb" aria-label="Image detail">
+  <button type="button" class="close" aria-label="Close">✕</button>
+  <div class="lb"><div class="img"><img id="lb-img" alt=""></div><div class="txt" id="lb-txt"></div></div>
+</dialog>
+
+<script>
+const FP = (file, w = 1000) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${w}`;
+const PAGE = file => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file.replace(/ /g, '_'))}`;
+// carousel: ways of watching the sky, oldest first
+const OBS = [
+  { y: 'Before 1521', t: 'Rain as a day sign', s: 'ritual', file: 'Codex_Magliabechiano_11R.jpg', alt: 'Four day signs from the Codex Magliabechiano, including Rain', c: 'The 260-day count includes Quiahuitl, “Rain”, as one of its 20 day signs. Watching the sky and keeping time were the same task. This copy is mid-16th century.', cr: 'Codex Magliabechiano, f. 11r · public domain' },
+  { y: '1577', t: 'The Florentine Codex', s: 'science', none: true, big: 'Book VII', sub: 'the sun, moon, stars, winds, clouds', href: 'https://commons.wikimedia.org/wiki/File:General_History_of_the_Things_of_New_Spain_by_Fray_Bernardino_de_Sahag%C3%BAn-_The_Florentine_Codex._Book_VII-_The_Sun,_Moon,_and_Stars,_and_the_Binding_of_the_Years_WDL10618.jpg', c: 'Sahagún and Nahua scholars wrote down what Nahua elders knew about the gods, the sky, clouds, rain and hail, in Nahuatl and Spanish. It is both a record of that knowledge and a tool of conversion.', cr: 'Bernardino de Sahagún, Florentine Codex, Book VII · World Digital Library scan · public domain' },
+  { y: '1788–1795', t: 'Gazetas de Literatura', s: 'science', thumb: 'https://archive.org/download/gazetadeliteratu01unkn/page/n10_w800.jpg', page: 'https://archive.org/details/gazetadeliteratu01unkn', alt: 'Title page of the Gazeta de Literatura de México by José Antonio Alzate, volume 1, printed in Mexico in 1790', c: 'José Antonio Alzate’s journal of natural science, printed in Mexico City. Natural philosophy, instruments and the weather of the valley in one place.', cr: 'Gazeta de literatura de México, vol. 1 (1790), title page · Internet Archive · public domain' },
+  { y: '1877', t: 'Observatorio Meteorológico Central', s: 'science', none: true, c: 'Mexico’s central weather observatory opens under Mariano Bárcena. Stations across the country begin sending readings by telegraph. No free-to-use image was found yet; this card is a placeholder for one.', cr: 'Image to be added' },
+  { y: '1901', t: 'Stiger vortex guns', s: 'capital', file: 'StateLibQld 2 196967 Collage of images of the Stiger vortex guns experiments, 1901.jpg', alt: 'Newspaper collage of Stiger vortex gun experiments, 1901', c: 'The hail cannon’s ancestor. Austrian vortex guns were sold worldwide to stop hail or bring rain. Firing them at the sky was an observation and a command at once.', cr: 'The Queenslander, 1901 · State Library of Queensland · public domain' },
+  { y: '1902', t: 'Rain guns at Charleville', s: 'capital', file: 'StateLibQld 2 65859 Battery of Stiger Vortex rain-making guns at Charleville, 1902.jpg', alt: 'A battery of Stiger vortex rain-making guns in Charleville, Queensland, 1902', c: 'A battery of Stiger guns fired during a drought in Queensland, Australia. No rain came. More than a century later, the same promise was made in Puebla.', cr: 'State Library of Queensland, 1902 · public domain' },
+  { y: 'Now', t: 'Every cloud, every 10 minutes', s: 'science', none: true, big: 'GOES', c: 'The GOES-East satellite images all of Mexico every 10 minutes, day and night. The globe on the front page shows its latest frame.', cr: 'NASA / NOAA · see the globe', href: 'index.html' },
+];
+// gallery: everything, including the myth images and the project drawings
+const GAL = [
+  { s: 'ritual', t: 'Tlaloc, Codex Borgia', y: 'Before 1521', file: 'Tlaloc_Codex_Borgia.jpg', alt: 'Tlaloc in the Codex Borgia', c: 'Tlaloc in a pre-Hispanic ritual calendar, probably from the Puebla–Tlaxcala region.', cr: 'Codex Borgia · public domain' },
+  { s: 'ritual', t: 'Chalchiuhtlicue, Codex Borbonicus', y: 'Early 1500s', file: 'Codex_Borbonicus_(p._5).jpg', alt: 'Chalchiuhtlicue in the Codex Borbonicus', c: 'The lady of rivers, lakes and springs, presiding over the fifth period of 13 days.', cr: 'Codex Borbonicus, p. 5 · public domain' },
+  { s: 'ritual', t: 'Tlalocan mural, Tepantitla', y: 'c. 200–650 CE', file: 'Detalle_de_mural_del_Tlalocan_de_Tepantitla_-_Teotihuacan.jpg', alt: 'Detail of the Tlalocan mural from Tepantitla', c: 'Reconstruction of the Teotihuacan mural often read as Tlaloc’s paradise, at the Museo Nacional de Antropología.', cr: 'Photo: Juan Carlos Fonseca Mata · CC BY-SA 4.0' },
+  { s: 'ritual', t: 'Tiemperos calling the rain', y: '2025', src: 'tiemperos-drawing.svg', page: 'tiemperos-2025.html', alt: 'Line drawing of tiemperos at the volcanoes', c: 'This project’s drawing of the tiemperos at Popocatépetl and Iztaccíhuatl, with their ritual year.', cr: 'Weather Commons drawing' },
+  ...OBS.filter(o => !o.none),
+  { s: 'capital', t: 'The hail cannon at VW Puebla', y: '2018', src: 'hail-cannon-drawing.svg', page: 'hail-cannon-2018.html', alt: 'Line drawing of the hail cannon at the VW plant', c: 'This project’s drawing of how the hail cannon worked, and why it could not reach the cloud.', cr: 'Weather Commons drawing' },
+  { s: 'science', t: 'The hydrologic cycle', y: '1931', src: 'horton-cycle-drawing.svg', page: 'comparison.html', alt: 'Line drawing of the hydrologic cycle after Horton', c: 'Robert E. Horton’s water cycle, redrawn as the baseline for comparing both cases.', cr: 'Weather Commons drawing, after Horton (1931)' },
+];
+const imgOf = (o, w) => o.src || o.thumb || FP(o.file, w);
+const pageOf = o => o.page || (o.file && PAGE(o.file)) || o.href;  // card credit link
+const esc = s => s.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+
+// ---------- carousel
+const track = document.getElementById('track');
+OBS.forEach((o, i) => {
+  const a = document.createElement('article'); a.className = 'card'; a.setAttribute('aria-label', `${i + 1} of ${OBS.length}: ${o.t}`);
+  a.innerHTML = `<div class="img">${o.none ? `<div class="noimg"><b>${o.big || o.y}</b>${o.sub || (o.big ? 'satellite' : 'no image yet')}</div>` : `<img loading="lazy" src="${imgOf(o, 900)}" alt="${esc(o.alt)}">`}</div>
+    <div class="txt"><div class="when"><b>${o.y}</b><span class="strand ${o.s}">${o.s}</span></div><h3>${o.t}</h3><p>${o.c}</p>
+    <span class="credit">${pageOf(o) ? `<a href="${pageOf(o)}">${o.cr}</a>` : o.cr}</span></div>`;
+  track.appendChild(a);
+});
+const cards = [...track.children], count = document.getElementById('count');
+const current = () => { const x = track.scrollLeft; let best = 0, d = Infinity; cards.forEach((c, i) => { const dd = Math.abs(c.offsetLeft - track.offsetLeft - x); if (dd < d) { d = dd; best = i; } }); return best; };
+const go = i => { i = Math.max(0, Math.min(cards.length - 1, i)); track.scrollTo({ left: cards[i].offsetLeft - track.offsetLeft, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); };
+const upd = () => { const i = current(); count.textContent = `${i + 1} / ${cards.length}`; document.getElementById('prev').disabled = i === 0; document.getElementById('next').disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4; };
+document.getElementById('prev').addEventListener('click', () => go(current() - 1));
+document.getElementById('next').addEventListener('click', () => go(current() + 1));
+track.addEventListener('scroll', () => requestAnimationFrame(upd));
+track.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { e.preventDefault(); go(current() + 1); } if (e.key === 'ArrowLeft') { e.preventDefault(); go(current() - 1); } });
+upd();
+
+// ---------- gallery
+const grid = document.getElementById('grid');
+GAL.forEach(o => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'tile'; b.dataset.s = o.s;
+  b.innerHTML = `<div class="img"><img loading="lazy" src="${imgOf(o, 600)}" alt="${esc(o.alt)}"></div><span><span class="strand ${o.s}" style="width:fit-content">${o.s}</span><b>${o.t}</b><span class="mono" style="padding:0">${o.y}</span></span>`;
+  b.addEventListener('click', () => openLb(o));
+  grid.appendChild(b);
+});
+document.querySelectorAll('.filters button').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.filters button').forEach(x => x.setAttribute('aria-pressed', String(x === btn)));
+  grid.querySelectorAll('.tile').forEach(t => t.hidden = btn.dataset.f !== 'all' && t.dataset.s !== btn.dataset.f);
+}));
+const lb = document.getElementById('lb');
+function openLb(o) {
+  const img = document.getElementById('lb-img'); img.src = imgOf(o, 1600); img.alt = o.alt;
+  document.getElementById('lb-txt').innerHTML = `<span class="strand ${o.s}" style="width:fit-content">${o.s}</span><h3>${o.t}</h3><p class="mono">${o.y}</p><p>${o.c}</p><p class="mono">${o.cr}</p>${pageOf(o) ? `<a href="${pageOf(o)}">${o.src ? 'Open the page' : 'Source and licence'} →</a>` : ''}`;
+  lb.showModal();
+}
+lb.querySelector('.close').addEventListener('click', () => lb.close());
+lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+</script>
+</body>
+</html>
