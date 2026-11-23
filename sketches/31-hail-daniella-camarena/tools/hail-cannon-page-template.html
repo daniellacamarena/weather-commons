@@ -1,0 +1,34 @@
+<title>Almecatla Hail Cannon</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@400;600;700&display=swap">
+<style>
+/* Layout: one plate, like a printed technical illustration, with a short key and sources underneath. Deliberately single-theme black on white. */
+:root{--paper:#ffffff;--ink:#000000;--rule:#000000;--soft:#3a3a3a;
+  --head:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;--mono:"IBM Plex Mono",Consolas,monospace;}
+body{background:var(--paper);color:var(--ink);font-family:var(--head);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+main{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+h1{font-size:clamp(1.6rem,3.6vw,2.4rem);font-weight:700;letter-spacing:.02em;text-transform:uppercase;margin:0;text-wrap:balance}
+.sub{font-family:var(--mono);font-size:.85rem;color:var(--soft);margin:4px 0 0}
+.plate{border:2px solid var(--rule);overflow-x:auto}
+.plate svg{display:block;width:100%;min-width:760px;height:auto}
+.key{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;border-top:2px solid var(--rule);padding-top:16px}
+.key div{min-width:0}
+.key h2{font-size:1rem;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px}
+.key p{margin:0;font-size:.95rem}
+.src{font-family:var(--mono);font-size:.78rem;color:var(--soft);border-top:1px solid var(--rule);padding-top:12px}
+.src a{color:var(--ink)}
+</style>
+<main>
+  <header>
+    <h1>The hail cannon at VW Puebla, 2018</h1>
+    <p class="sub">San Lorenzo Almecatla, Cuautlancingo, Puebla · black-and-white line drawing · vertical scale in km above the ground, cannon and people enlarged</p>
+  </header>
+  <div class="plate">__SVG__</div>
+  <section class="key">
+    <div><h2>Which cloud was fired at</h2><p>The target was the cumulonimbus, the only cloud that makes hail. In automatic mode a radar fired the cannon whenever a convective cloud started to build, so in practice it fired at growing cumulus congestus too. Press reports say "every time a cloud formed".</p></div>
+    <div><h2>How many times</h2><p>No firing log has been published. What is on record: 3 devices, one blast about every 7 seconds (514 per hour per cannon), automatic mode from May to 20 August 2018. The state permit allowed 2 hours a year, about 3,100 blasts. There were 66 days with rain in that period. If the cannons fired about 1 hour per storm, the total would be roughly 100,000 blasts. That figure is an estimate.</p></div>
+    <div><h2>Why it could not reach the cloud</h2><p>The blast is very loud at the mouth but spreads out and weakens to ordinary sound within tens of metres. Hail grows 3.5 to 6 km up, inside an updraft of 10 to 25 m/s. Studies have found no measurable effect on hail or rain.</p></div>
+  </section>
+  <p class="src">Sources: Expansión, 15 and 20 Aug 2018 (3 devices, acetylene, every 7 s, 500 m claimed radius, 2 h/yr state permit, operating since May); Xataka México (≈120 dB); rainy days and July rainfall from ERA5 and CHIRPS at the plant (see the companion map). Altitudes and temperature levels are typical rainy-season values for Puebla, not measurements from a specific storm.</p>
+</main>

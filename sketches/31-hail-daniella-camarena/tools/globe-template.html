@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weather Commons</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@400;600;700&display=swap">
+<style>
+/* Full-bleed globe with a printed black-on-white panel, matching the plates. */
+:root{--paper:#ffffff;--ink:#000000;--soft:#3a3a3a;--space:#05070a;
+  --dry:#a6611a;--wet:#018571;
+  --head:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;--mono:"IBM Plex Mono",Consolas,monospace;}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--space);color:var(--ink);font-family:var(--head)}
+#map{position:fixed;inset:0}
+button{font:inherit;color:inherit;background:var(--paper);border:2px solid var(--ink);cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 5px var(--ink)}
+
+.panel{position:fixed;z-index:2;top:16px;left:16px;bottom:16px;width:380px;background:var(--paper);border:2px solid var(--ink);
+  display:flex;flex-direction:column;overflow:hidden}
+.panel header{padding:16px 18px 12px;border-bottom:2px solid var(--ink)}
+.panel h1{margin:0;font-size:1.7rem;letter-spacing:.03em;text-transform:uppercase;line-height:1.05}
+.panel .sub{font-family:var(--mono);font-size:.75rem;color:var(--soft);margin:6px 0 0}
+.pnav{display:flex;flex-wrap:wrap;gap:2px 14px;margin:8px 0 0;padding:0;list-style:none;font-family:var(--mono);font-size:.78rem}.pnav a{color:var(--ink);display:inline-block;padding:4px 0}.pnav a[aria-current=page]{font-weight:600;text-decoration-thickness:3px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:2px solid var(--ink)}
+.tabs button{border:0;padding:10px 6px;min-height:52px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:.85rem;line-height:1.1}
+.tabs button+button{border-left:2px solid var(--ink)}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.tabs small{display:block;font-family:var(--mono);font-weight:400;text-transform:none;letter-spacing:0;font-size:.68rem;margin-top:2px}
+.body{flex:1;overflow-y:auto;padding:14px 18px 18px;display:flex;flex-direction:column;gap:14px}
+.body h2{margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:.05em}
+.body p{margin:0;font-size:.95rem;line-height:1.45}
+.mono{font-family:var(--mono);font-size:.78rem;color:var(--soft)}
+.layers{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--ink);padding-top:10px}
+.layer{display:grid;grid-template-columns:22px 28px 1fr;gap:8px;align-items:center;min-height:36px;cursor:pointer;font-size:.92rem}
+.layer input{width:18px;height:18px;margin:0;accent-color:#000}
+.layer .sw{width:28px;height:0;border-top:3px solid var(--ink)}
+.layer .sw.reported{border-top-style:dashed}
+.layer .sw.speculated{border-top-style:dotted;border-top-width:4px}
+.layer .sw.img{height:14px;border:2px solid var(--ink);background:linear-gradient(135deg,#dfe6ee,#7f8d9c)}
+.layer .sw.grid{height:14px;border:1px solid var(--ink);background:linear-gradient(90deg,var(--dry),#f3efe6,var(--wet))}
+.layer small{display:block;font-family:var(--mono);font-size:.7rem;color:var(--soft)}
+.evidence{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--mono);font-size:.72rem}
+.evidence span{display:inline-flex;align-items:center;gap:6px}
+.evidence i{display:inline-block;width:24px;border-top:3px solid var(--ink)}
+.evidence i.r{border-top-style:dashed}.evidence i.s{border-top-style:dotted;border-top-width:4px}
+.timebox{border:2px solid var(--ink);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.timebox .date{font-size:1.35rem;font-weight:700}
+.timebox input[type=range]{width:100%;accent-color:#000}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{padding:8px 14px;min-height:40px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.82rem}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stats div{border-top:1px solid var(--ink);padding-top:4px}
+.stats b{display:block;font-size:1.2rem}
+.bar{height:6px;background:#eee;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:6px 10px;min-height:40px;font-size:.82rem;text-align:left;line-height:1.15}
+.chips button small{display:block;font-family:var(--mono);font-size:.68rem}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.legendbar{height:10px;background:linear-gradient(90deg,var(--dry),#f3efe6,var(--wet));border:1px solid var(--ink)}
+.legendlab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.7rem}
+nav.pages{display:flex;flex-direction:column;gap:0;border-top:2px solid var(--ink)}
+nav.pages a{color:var(--ink);text-decoration:none;padding:9px 0;border-bottom:1px solid var(--ink);display:flex;justify-content:space-between;gap:8px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:.85rem}
+nav.pages a span{font-family:var(--mono);font-weight:400;text-transform:none;letter-spacing:0;font-size:.72rem;color:var(--soft);text-align:right}
+nav.pages a.soon{color:#888;pointer-events:none}
+.credit{font-family:var(--mono);font-size:.66rem;color:var(--soft)}
+
+/* map labels (HTML markers) */
+.pin{font-family:var(--head);font-size:12px;font-weight:700;color:var(--ink);background:var(--paper);border:2px solid var(--ink);padding:2px 6px;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;pointer-events:none;transform:translateY(-14px)}
+.pin small{display:block;font-family:var(--mono);font-weight:400;text-transform:none;letter-spacing:0;font-size:10px}
+.pin.reported{border-style:dashed}
+.pin.speculated{border-style:dotted;font-style:italic}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--ink);border:2px solid #fff}
+.stamp{position:fixed;z-index:2;right:16px;bottom:16px;background:var(--paper);border:2px solid var(--ink);padding:6px 10px;font-family:var(--mono);font-size:.72rem;max-width:min(360px,calc(100vw - 32px))}
+
+@media (max-width:760px){
+  .panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:58vh;border-width:2px 0 0}
+  .panel header{padding:10px 16px 8px}
+  .panel h1{font-size:1.3rem}
+  .panel .sub{display:none}
+  .body{padding:12px 16px 16px}
+  .stamp{top:12px;bottom:auto;right:60px;left:12px;max-width:none}
+}
+</style>
+</head>
+<body>
+<div id="map" role="img" aria-label="Globe showing current clouds, with layers for weather modification events in Puebla, Mexico"></div>
+
+<aside class="panel">
+  <header>
+    <h1>Weather Commons</h1>
+    <p class="sub">Who gets to move a cloud? Two ways weather has been modified in Puebla, Mexico, set on the clouds of today.</p>
+    <nav aria-label="Site"><ul class="pnav"><li><a href="index.html" aria-current="page">Globe</a></li><li><a href="comparison.html">Comparison</a></li><li><a href="hail-cannon-2018.html">Hail cannon</a></li><li><a href="tiemperos-2025.html">Tiemperos</a></li><li><a href="archive.html">Archive</a></li></ul></nav>
+  </header>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-mode="now" aria-selected="true">Now<small>live clouds</small></button>
+    <button role="tab" data-mode="hail" aria-selected="false">Hail cannon<small>VW · 2018</small></button>
+    <button role="tab" data-mode="tiemp" aria-selected="false">Tiemperos<small>volcanoes</small></button>
+  </div>
+  <div class="body" id="body"></div>
+</aside>
+<div class="stamp" id="stamp" aria-live="polite"></div>
+
+<template id="t-now">
+  <p>These are the clouds over the Earth right now. Over the Americas they come from the GOES-East satellite, updated every 10 minutes, at night too. The rest of the world shows the latest complete day of daytime passes.</p>
+  <div class="layers">
+    <label class="layer"><input type="checkbox" data-layer="goes" checked><i class="sw img"></i><span>Live clouds, Americas<small>observed · GOES-East GeoColor</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="viirs" checked><i class="sw img"></i><span>Latest full day of clouds, world<small>observed · VIIRS NOAA-20</small></span></label>
+  </div>
+  <p>Two events changed, or claimed to change, the clouds over Puebla. Open one to see its layers.</p>
+  <div class="chips">
+    <button data-go="hail">Hail cannon<small>a car plant pushes clouds away · 2018</small></button>
+    <button data-go="tiemp">Tiemperos<small>villages call the rain · every year</small></button>
+  </div>
+  <div class="evidence"><span><i></i>observed</span><span><i class="r"></i>reported (press, ethnography)</span><span><i class="s"></i>interpretive</span></div>
+  <nav class="pages" aria-label="Pages">
+    <a href="comparison.html">Two ways to touch a cloud<span>Horton’s cycle, side by side</span></a>
+    <a href="hail-cannon-2018.html">The hail cannon<span>drawing · 2018</span></a>
+    <a href="tiemperos-2025.html">The tiemperos<span>drawing · ritual year</span></a>
+    <a href="nubes-almecatla-2018.html">Nubes sobre Almecatla<span>rain and cloud data · 2018</span></a>
+    <a href="archive.html">Archive<span>Tlaloc, Chalchiuhtlicue, first observations</span></a>
+  </nav>
+  <p class="credit">Imagery: NASA GIBS / Worldview (GOES-East ABI GeoColor, VIIRS NOAA-20, MODIS Aqua, Blue Marble). Map: MapLibre.</p>
+</template>
+
+<template id="t-hail">
+  <p>In 2018 the Volkswagen plant at San Lorenzo Almecatla fired three hail cannons at storm clouds to protect new cars parked in the open. Farmers nearby said the rain stopped coming.</p>
+  <div class="timebox">
+    <div class="row" style="justify-content:space-between"><span class="date" id="h-date"></span><span class="mono" id="h-auto"></span></div>
+    <input type="range" id="h-slider" min="0" max="0" value="0" aria-label="Day in the 2018 rainy season">
+    <div class="row"><button class="btn" id="h-play" aria-pressed="false">▶ Play the season</button><button class="btn" id="h-jul">24 July</button></div>
+    <div class="stats">
+      <div><span class="mono">rain at the plant · reanalysed</span><b id="h-p"></b><div class="bar"><i id="h-pbar"></i></div></div>
+      <div><span class="mono">cloud cover · reanalysed</span><b id="h-c"></b><div class="bar"><i id="h-cbar"></i></div></div>
+    </div>
+    <span class="mono">Satellite image: MODIS Aqua, early afternoon pass of that day. Numbers: ERA5 reanalysis for the plant’s grid cell.</span>
+  </div>
+  <div class="layers">
+    <label class="layer"><input type="checkbox" data-layer="event" checked><i class="sw img"></i><span>Clouds on that day<small>observed · MODIS Aqua</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="chirps" checked><i class="sw grid"></i><span>2018 season rain vs normal<small>observed · CHIRPS, May–Oct, 2010–2020 normal</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="hail-rings" checked><i class="sw"></i><span>Distance rings, 5 / 15 / 30 km<small>observed · CHIRPS averaged within each ring</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="hail-reach" checked><i class="sw reported"></i><span>Plant and the cannons’ claimed reach<small>reported · 500 m radius, Expansión 2018</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="hail-spec" checked><i class="sw speculated"></i><span>The farmers’ account as movement<small>interpretive · clouds splitting before the fields</small></span></label>
+  </div>
+  <div><div class="legendbar"></div><div class="legendlab"><span id="lg-min"></span><span>normal</span><span id="lg-max"></span></div></div>
+  <p class="mono" id="h-rings"></p>
+  <p class="mono">The interpretive arrows draw the farmers’ claim. They are not an observed storm track; the real direction of each storm is not known here.</p>
+</template>
+
+<template id="t-tiemp">
+  <p>In the villages on Popocatépetl and Iztaccíhuatl, tiemperos climb to caves and crosses to call the rain and turn the hail aside. Their calendar follows the rainy season. Pick a ritual day to see that day’s clouds over the volcanoes.</p>
+  <div class="chips" id="t-days"></div>
+  <span class="mono" id="t-note"></span>
+  <div class="layers">
+    <label class="layer"><input type="checkbox" data-layer="event" checked><i class="sw img"></i><span>Clouds on that day<small>observed · VIIRS NOAA-20</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="tiemp-places" checked><i class="sw reported"></i><span>Volcanoes and villages<small>reported · ethnography and press</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="tiemp-spec" checked><i class="sw speculated"></i><span>Moist air rising up the slopes<small>interpretive · schematic, not an observed wind</small></span></label>
+  </div>
+  <p class="mono">El Ombligo (~4,200 m) and the Alcalican cave are on Popocatépetl, but their exact positions are not mapped here.</p>
+  <p class="mono">“Una nube, quieta o en movimiento, es la expresión de una voluntad.” Julio Glockner, <i>Ciencias</i> 90, 2008.</p>
+</template>
+
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<script>
+const DATA = __DATA__;
+const GIBS = (layer, time, matrix, ext) => `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${time ? time + '/' : ''}${matrix}/{z}/{y}/{x}.${ext}`;
+const PLANT = [-98.2455, 19.1218];               // VW de México, OpenStreetMap
+const RING_C = [-98.258, 19.112];                // centre used in the rainfall analysis
+const POPO = [-98.6278, 19.0225], IZTA = [-98.6425, 19.1786], OZOLCO = [-98.5144, 19.1008];
+const iso = d => d.toISOString().slice(0, 10);
+const today = new Date();
+const yesterday = iso(new Date(Date.now() - 30 * 3600e3));   // latest day GIBS has finished: UTC now minus 30 h
+
+// ---------- geometry helpers
+const km2deg = (km, lat) => [km / (111.32 * Math.cos(lat * Math.PI / 180)), km / 110.57];
+function circle([lon, lat], km, n = 96) {
+  const [dx, dy] = km2deg(km, lat);
+  const c = []; for (let i = 0; i <= n; i++) { const a = i / n * 2 * Math.PI; c.push([lon + dx * Math.cos(a), lat + dy * Math.sin(a)]); }
+  return c;
+}
+function curve(p0, p1, bend = .25, n = 32) {           // quadratic arc between two points
+  const mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2, dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+  const c = [mx - dy * bend, my + dx * bend], out = [];
+  for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t; out.push([u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0], u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1]]); }
+  return out;
+}
+function head(line, size = .018) {                      // arrowhead triangle at the end of a line
+  const [a, b] = [line[line.length - 2], line[line.length - 1]];
+  const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), w = .45;
+  return [b, [b[0] - size * Math.cos(ang - w), b[1] - size * Math.sin(ang - w)], [b[0] - size * Math.cos(ang + w), b[1] - size * Math.sin(ang + w)], b];
+}
+const fc = features => ({ type: 'FeatureCollection', features });
+const line = (coords, props = {}) => ({ type: 'Feature', properties: props, geometry: { type: 'LineString', coordinates: coords } });
+const poly = (coords, props = {}) => ({ type: 'Feature', properties: props, geometry: { type: 'Polygon', coordinates: [coords] } });
+const arrows = (pairs, bend, size) => { const f = []; pairs.forEach(([a, b]) => { const l = curve(a, b, bend); f.push(line(l)); f.push(poly(head(l, size))); }); return fc(f); };
+
+// ---------- CHIRPS grid
+const g = DATA.grid;
+const anoms = DATA.cells.map(c => c.anom);
+const amax = Math.max(...anoms.map(Math.abs));
+const chirps = fc(DATA.cells.map(c => {
+  const x0 = c.lon - g.dx / 2, x1 = c.lon + g.dx / 2, y0 = c.lat - Math.abs(g.dy) / 2, y1 = c.lat + Math.abs(g.dy) / 2;
+  return poly([[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]], { anom: c.anom, base: c.base, y2018: c.y2018 });
+}));
+
+// ---------- map
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    projection: { type: 'globe' },
+    sky: { 'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 5, 1, 7, 0] },
+    sources: {
+      bm: { type: 'raster', tiles: [GIBS('BlueMarble_ShadedRelief_Bathymetry', '', 'GoogleMapsCompatible_Level8', 'jpeg')], tileSize: 256, maxzoom: 8, attribution: 'NASA GIBS' },
+    },
+    layers: [
+      { id: 'space', type: 'background', paint: { 'background-color': '#05070a' } },
+      { id: 'bm', type: 'raster', source: 'bm' },
+    ],
+  },
+  center: [-99, 19], zoom: 1.6, minZoom: 1, maxZoom: 10, attributionControl: false,
+});
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: 'NASA GIBS · CHIRPS · ERA5' }));
+
+const stamp = document.getElementById('stamp');
+let goesTime = null, goesTried = false;
+
+async function latestGoes() {                         // newest GOES-East frame GIBS can serve
+  const t = new Date(Date.now() - 30 * 60e3);
+  t.setUTCMinutes(Math.floor(t.getUTCMinutes() / 10) * 10, 0, 0);
+  for (let i = 0; i < 9; i++) {
+    const s = t.toISOString().slice(0, 19) + 'Z';
+    try { const r = await fetch(GIBS('GOES-East_ABI_GeoColor', s, 'GoogleMapsCompatible_Level7', 'png').replace('{z}/{y}/{x}', '3/3/2')); if (r.ok) return s; } catch (e) {}
+    t.setUTCMinutes(t.getUTCMinutes() - 10);
+  }
+  return null;
+}
+const pad = () => innerWidth > 760 ? { left: 400, top: 0, right: 0, bottom: 0 } : { left: 0, top: 60, right: 0, bottom: Math.round(innerHeight * .58) };
+const fmtUTC = s => new Date(s).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+
+const goesP = latestGoes();                         // start probing right away, not after every tile has loaded
+map.once('style.load', async () => {
+  map.addSource('viirs', { type: 'raster', tiles: [GIBS('VIIRS_NOAA20_CorrectedReflectance_TrueColor', yesterday, 'GoogleMapsCompatible_Level9', 'jpg')], tileSize: 256, maxzoom: 9 });
+  map.addLayer({ id: 'viirs', type: 'raster', source: 'viirs', paint: { 'raster-opacity': .95 } });
+  // event imagery (filled per mode)
+  map.addSource('event', { type: 'raster', tiles: [GIBS('MODIS_Aqua_CorrectedReflectance_TrueColor', '2018-07-24', 'GoogleMapsCompatible_Level9', 'jpg')], tileSize: 256, maxzoom: 9 });
+  map.addLayer({ id: 'event', type: 'raster', source: 'event', layout: { visibility: 'none' } });
+  // CHIRPS anomaly grid
+  map.addSource('chirps', { type: 'geojson', data: chirps });
+  map.addLayer({ id: 'chirps', type: 'fill', source: 'chirps', layout: { visibility: 'none' }, paint: {
+    'fill-color': ['interpolate', ['linear'], ['get', 'anom'], -amax, '#a6611a', 0, '#f3efe6', amax, '#018571'],
+    'fill-opacity': .42 } });
+  // hail: rings, reach, speculation
+  map.addSource('hail-rings', { type: 'geojson', data: fc([5, 15, 30].map(k => line(circle(RING_C, k)))) });
+  map.addLayer({ id: 'hail-rings', type: 'line', source: 'hail-rings', layout: { visibility: 'none' }, paint: { 'line-color': '#000', 'line-width': 1.5 } });
+  map.addSource('hail-reach', { type: 'geojson', data: fc([line(circle(PLANT, .5))]) });
+  map.addLayer({ id: 'hail-reach', type: 'line', source: 'hail-reach', layout: { visibility: 'none' }, paint: { 'line-color': '#000', 'line-width': 2.5, 'line-dasharray': [3, 2] } });
+  const spl = [[[-98.45, 19.15], [-98.12, 19.27]], [[-98.45, 19.08], [-98.12, 18.97]]];
+  map.addSource('hail-spec', { type: 'geojson', data: arrows(spl, 0, .022) });
+  map.addLayer({ id: 'hail-spec-case', type: 'line', source: 'hail-spec', layout: { visibility: 'none', 'line-cap': 'round' }, filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#000', 'line-width': 7, 'line-opacity': .55 } });
+  map.addLayer({ id: 'hail-spec', type: 'line', source: 'hail-spec', layout: { visibility: 'none', 'line-cap': 'round' }, filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#fff', 'line-width': 4, 'line-dasharray': [0.1, 2] } });
+  map.addLayer({ id: 'hail-spec-head', type: 'fill', source: 'hail-spec', layout: { visibility: 'none' }, filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#fff' } });
+  // tiemperos: rising air (speculated)
+  const up = [[[-98.40, 19.06], [-98.57, 19.04]], [[-98.40, 19.20], [-98.58, 19.17]], [[-98.75, 18.86], [-98.66, 18.98]], [[-98.48, 18.88], [-98.59, 18.98]]];
+  map.addSource('tiemp-spec', { type: 'geojson', data: arrows(up, .18, .02) });
+  map.addLayer({ id: 'tiemp-spec-case', type: 'line', source: 'tiemp-spec', layout: { visibility: 'none', 'line-cap': 'round' }, filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#000', 'line-width': 7, 'line-opacity': .55 } });
+  map.addLayer({ id: 'tiemp-spec', type: 'line', source: 'tiemp-spec', layout: { visibility: 'none', 'line-cap': 'round' }, filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#fff', 'line-width': 4, 'line-dasharray': [0.1, 2] } });
+  map.addLayer({ id: 'tiemp-spec-head', type: 'fill', source: 'tiemp-spec', layout: { visibility: 'none' }, filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#fff' } });
+
+  goesTime = await goesP; goesTried = true;
+  if (goesTime) {
+    map.addSource('goes', { type: 'raster', tiles: [GIBS('GOES-East_ABI_GeoColor', goesTime, 'GoogleMapsCompatible_Level7', 'png')], tileSize: 256, maxzoom: 7 });
+    map.addLayer({ id: 'goes', type: 'raster', source: 'goes', paint: { 'raster-opacity': .95 } }, 'event');
+  }
+  setMode(mode, false);
+  spin();
+});
+
+// ---------- HTML labels
+const markers = {};
+function pin(group, lnglat, html, cls = '') {
+  const el = document.createElement('div'); el.className = 'pin ' + cls; el.innerHTML = html;
+  const dot = document.createElement('div'); dot.className = 'dot';
+  const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.alignItems = 'center'; wrap.append(el, dot);
+  (markers[group] ??= []).push(new maplibregl.Marker({ element: wrap, anchor: 'bottom' }).setLngLat(lnglat));
+}
+function tag(group, lnglat, html, cls = '') {
+  const el = document.createElement('div'); el.className = 'pin ' + cls; el.style.transform = 'none'; el.innerHTML = html;
+  (markers[group] ??= []).push(new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(lnglat));
+}
+pin('hail-reach', PLANT, 'VW plant<small>3 cannons · 500 m claimed reach</small>', 'reported');
+tag('hail-spec', [-98.12, 19.32], 'Farmers’ account<small>clouds split before the fields</small>', 'speculated');
+pin('tiemp-places', POPO, 'Popocatépetl<small>“Don Goyo” · 5,426 m</small>', 'reported');
+pin('tiemp-places', IZTA, 'Iztaccíhuatl<small>“Rosita” · 5,230 m</small>', 'reported');
+pin('tiemp-places', OZOLCO, 'San Mateo Ozolco<small>tiemperos’ village</small>', 'reported');
+tag('tiemp-spec', [-98.34, 18.96], 'Moist air pushed up the slopes<small>afternoon storms build here</small>', 'speculated');
+function showMarkers(group, on) { (markers[group] || []).forEach(m => on ? m.addTo(map) : m.remove()); }
+
+// ---------- modes
+const body = document.getElementById('body');
+let mode = 'now', vis = {}, spinning = true, hailTimer = null;
+const DAYS = DATA.daily2018;
+const TDAYS = [
+  { d: '2025-03-12', t: '12 March', s: 'San Gregorio · dry season' },
+  { d: '2025-05-03', t: '3 May', s: 'Santa Cruz · first storms' },
+  { d: '2025-08-30', t: '30 August', s: 'Santa Rosa · hail season' },
+];
+const DEFAULTS = {
+  now: { goes: true, viirs: true },
+  hail: { event: true, chirps: true, 'hail-rings': true, 'hail-reach': true, 'hail-spec': true },
+  tiemp: { event: true, 'tiemp-places': true, 'tiemp-spec': true },
+};
+const MAP_LAYERS = { goes: ['goes'], viirs: ['viirs'], event: ['event'], chirps: ['chirps'], 'hail-rings': ['hail-rings'], 'hail-reach': ['hail-reach'], 'hail-spec': ['hail-spec-case', 'hail-spec', 'hail-spec-head'], 'tiemp-places': [], 'tiemp-spec': ['tiemp-spec-case', 'tiemp-spec', 'tiemp-spec-head'] };
+
+function apply() {
+  for (const [k, ids] of Object.entries(MAP_LAYERS)) {
+    const on = !!vis[k];
+    ids.forEach(id => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'));
+    showMarkers(k, on);
+  }
+}
+function setEventTiles(layer, date) {
+  const src = map.getSource('event'); if (src) src.setTiles([GIBS(layer, date, 'GoogleMapsCompatible_Level9', 'jpg')]);
+}
+function setMode(m, fly = true) {
+  mode = m; stopHail();
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
+  body.replaceChildren(document.getElementById('t-' + m).content.cloneNode(true));
+  body.scrollTop = 0;
+  vis = { ...DEFAULTS[m] };
+  body.querySelectorAll('input[data-layer]').forEach(i => { i.checked = !!vis[i.dataset.layer]; i.addEventListener('change', () => { vis[i.dataset.layer] = i.checked; apply(); }); });
+  body.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.go)));
+  if (m === 'now') {
+    stamp.textContent = goesTime ? `Live clouds: GOES-East, ${fmtUTC(goesTime)} · world: VIIRS, ${yesterday}` : goesTried ? `World clouds: VIIRS, ${yesterday} · live GOES frame not reachable` : 'Loading live clouds…';
+    if (fly) map.flyTo({ center: [-99, 19], zoom: 1.6, duration: 2200, padding: { left: 0, top: 0, right: 0, bottom: 0 } });
+    spinning = true;
+  }
+  if (m === 'hail') initHail(fly);
+  if (m === 'tiemp') initTiemp(fly);
+  apply();
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+// ---------- hail cannon
+function initHail(fly) {
+  spinning = false;
+  const s = body.querySelector('#h-slider'); s.max = DAYS.length - 1;
+  const jul = DAYS.findIndex(d => d.t === '2018-07-24');
+  s.value = jul; s.addEventListener('input', () => { stopHail(); showDay(+s.value); });
+  body.querySelector('#h-jul').addEventListener('click', () => { stopHail(); s.value = jul; showDay(jul); });
+  body.querySelector('#h-play').addEventListener('click', () => hailTimer ? stopHail() : playHail());
+  body.querySelector('#lg-min').textContent = `−${Math.round(amax)}%`;
+  body.querySelector('#lg-max').textContent = `+${Math.round(amax)}%`;
+  body.querySelector('#h-rings').textContent = 'Season rain 2018 vs normal: ' + DATA.rings.map(r => `${r.label} ${r.anom2018 > 0 ? '+' : ''}${r.anom2018}%`).join(' · ');
+  showDay(jul);
+  if (fly) map.flyTo({ center: [-98.3, 19.1], zoom: 8.4, duration: 2600, padding: pad() });
+}
+function showDay(i) {
+  const d = DAYS[i]; if (!d || !body.querySelector('#h-date')) return;
+  const date = new Date(d.t + 'T12:00:00Z');
+  body.querySelector('#h-date').textContent = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const auto = d.t >= '2018-05-01' && d.t <= '2018-08-20';
+  body.querySelector('#h-auto').textContent = auto ? 'cannons in automatic mode' : 'after the cannons stopped';
+  body.querySelector('#h-p').textContent = `${d.p.toFixed(1)} mm`;
+  body.querySelector('#h-c').textContent = `${Math.round(d.c)}%`;
+  body.querySelector('#h-pbar').style.width = Math.min(100, d.p / 20 * 100) + '%';
+  body.querySelector('#h-cbar').style.width = d.c + '%';
+  setEventTiles('MODIS_Aqua_CorrectedReflectance_TrueColor', d.t);
+  stamp.textContent = `Clouds: MODIS Aqua, ${d.t} · rain and cloud cover: ERA5 at the plant`;
+}
+function playHail() {
+  const s = body.querySelector('#h-slider'), b = body.querySelector('#h-play');
+  b.textContent = '❚❚ Pause'; b.setAttribute('aria-pressed', 'true');
+  hailTimer = setInterval(() => { s.value = (+s.value + 1) % DAYS.length; showDay(+s.value); }, 1400);
+}
+function stopHail() {
+  if (hailTimer) clearInterval(hailTimer); hailTimer = null;
+  const b = body.querySelector('#h-play'); if (b) { b.textContent = '▶ Play the season'; b.setAttribute('aria-pressed', 'false'); }
+}
+
+// ---------- tiemperos
+function initTiemp(fly) {
+  spinning = false;
+  const box = body.querySelector('#t-days');
+  const pick = k => {
+    box.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === k)));
+    setEventTiles('VIIRS_NOAA20_CorrectedReflectance_TrueColor', TDAYS[k].d);
+    body.querySelector('#t-note').textContent = `Clouds on ${TDAYS[k].t} 2025, VIIRS NOAA-20 early-afternoon pass. Early November thanksgiving has no fixed day, so it is not shown.`;
+    stamp.textContent = `Clouds: VIIRS NOAA-20, ${TDAYS[k].d} · ${TDAYS[k].s}`;
+  };
+  TDAYS.forEach((t, k) => { const b = document.createElement('button'); b.innerHTML = `${t.t}<small>${t.s}</small>`; b.addEventListener('click', () => pick(k)); box.appendChild(b); });
+  pick(2);
+  if (fly) map.flyTo({ center: [-98.52, 19.04], zoom: 8.9, duration: 2600, padding: pad() });
+}
+
+// ---------- slow spin on the start view
+let lastT = 0, userBusy = false;
+['mousedown', 'touchstart', 'wheel'].forEach(e => map.on(e, () => { userBusy = true; }));
+map.on('moveend', () => { userBusy = false; });
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function spin(t = 0) {
+  if (!reduce && spinning && !userBusy && mode === 'now' && map.getZoom() < 3 && t - lastT > 40) {
+    const c = map.getCenter(); c.lng -= .06; map.jumpTo({ center: c }); lastT = t;
+  }
+  requestAnimationFrame(spin);
+}
+setMode('now', false);
+</script>
+</body>
+</html>

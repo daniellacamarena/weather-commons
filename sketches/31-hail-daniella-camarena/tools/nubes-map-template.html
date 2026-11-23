@@ -1,0 +1,417 @@
+<title>Nubes de Almecatla 2018</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: una columna de lectura (~68ch) con figuras que se abren a 1040px; mapa y visor de nubes como instrumentos. */
+:root{
+  --bg:#eef1f2; --surface:#ffffff; --ink:#18222b; --muted:#56636e; --line:#cfd6db;
+  --storm:#2c4f86; --dry:#9a5a1c; --wet:#11756b; --mark:#d23a2a;
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11171c; --surface:#19222a; --ink:#e4e9ec; --muted:#9aa7b1; --line:#2c3842;
+  --storm:#86a9e0; --dry:#d99a5b; --wet:#4fc2b2; --mark:#ff6a55; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11171c; --surface:#19222a; --ink:#e4e9ec; --muted:#9aa7b1; --line:#2c3842;
+  --storm:#86a9e0; --dry:#d99a5b; --wet:#4fc2b2; --mark:#ff6a55; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+main{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+.prose{max-width:68ch}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:800;line-height:1.05}
+h2{font-size:1.55rem;font-weight:700;margin-bottom:.4em}
+h3{font-size:1.05rem;font-weight:700}
+p{margin:.6em 0}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{font-size:1.15rem;color:var(--muted);max-width:62ch}
+header{display:flex;flex-direction:column;gap:14px}
+.coords{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:8px}
+.stat{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat b{font-family:var(--mono);font-size:1.6rem;font-variant-numeric:tabular-nums;font-weight:600}
+.stat span{font-size:.9rem;color:var(--muted);line-height:1.35}
+.neg{color:var(--dry)} .pos{color:var(--wet)}
+figure{margin:0;display:flex;flex-direction:column;gap:10px}
+figcaption{font-size:.88rem;color:var(--muted);max-width:75ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px}
+.mapwrap{display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.mapwrap{grid-template-columns:minmax(0,1fr)}}
+.canvasbox{position:relative;width:100%;max-width:560px;aspect-ratio:1/1;background:#000;border-radius:4px;overflow:hidden}
+.canvasbox canvas,.canvasbox img,.canvasbox svg{position:absolute;inset:0;width:100%;height:100%}
+.tip{position:absolute;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:6px 8px;font-family:var(--mono);font-size:.72rem;line-height:1.4;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;flex-wrap:wrap}
+.seg button{font:600 .85rem var(--body);background:var(--surface);color:var(--ink);border:0;border-right:1px solid var(--line);padding:7px 12px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--storm);color:var(--bg)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+label.rng{display:flex;gap:8px;align-items:center;font-size:.85rem;color:var(--muted)}
+.legend{display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:var(--muted)}
+.ramp{height:12px;border-radius:2px;border:1px solid var(--line)}
+.ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.7rem}
+.swatches{display:flex;flex-wrap:wrap;gap:6px 14px}
+.sw{display:inline-flex;gap:6px;align-items:center}
+.sw i{width:12px;height:12px;border-radius:2px;display:inline-block;border:1px solid var(--line)}
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.chart svg{width:100%;height:auto;display:block}
+.chart svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
+.chart h3{margin-bottom:4px}
+.chart p.note{font-size:.85rem;color:var(--muted);margin:4px 0 0}
+.small{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+table{border-collapse:collapse;font-size:.85rem;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-family:var(--mono);font-weight:600;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+td.hl,th.hl{background:color-mix(in srgb,var(--storm) 14%,transparent)}
+.tablebox{overflow-x:auto}
+.cloudtypes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.ct{border-top:3px solid var(--storm);padding-top:8px}
+.ct p{font-size:.9rem;margin:.3em 0}
+.ct .t{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+ul.clean{padding-left:1.1em;margin:.4em 0}
+ul.clean li{margin:.35em 0}
+.verdict{border-left:4px solid var(--mark);padding:4px 0 4px 16px}
+.src{font-size:.85rem;color:var(--muted)}
+.src a{color:var(--storm)}
+a{color:var(--storm)}
+code{font-family:var(--mono);font-size:.85em}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<main>
+<header>
+  <div class="eyebrow">Cuautlancingo, Puebla · temporada de lluvias 2018</div>
+  <h1>¿Secaron las nubes los cañones antigranizo de VW?</h1>
+  <p class="lede">Datos de satélite y reanálisis alrededor de la planta de Volkswagen en San Lorenzo Almecatla: cuánta lluvia cayó, qué nubes hubo, cómo respondió el suelo y qué se sabe de la fauna.</p>
+  <div class="coords">Planta ≈ 19.112° N, 98.258° O · 2,180 m s.n.m. · posición aproximada</div>
+  <div class="stats">
+    <div class="stat"><b class="neg" id="s-near">—</b><span>lluvia mayo–octubre 2018 a menos de 15 km de la planta, frente a su normal 2010–2020</span></div>
+    <div class="stat"><b id="s-far">—</b><span>misma comparación a 30–55 km de la planta</span></div>
+    <div class="stat"><b class="neg" id="s-jul">—</b><span>lluvia de julio 2018 en toda la región (canícula muy marcada)</span></div>
+    <div class="stat"><b id="s-rank">—</b><span>lugar de 2018 en la diferencia “cerca contra lejos”, entre 11 años</span></div>
+  </div>
+</header>
+
+<section>
+  <div class="prose">
+    <h2>1. Mapa de la anomalía de lluvia</h2>
+    <p>Cada cuadro mide 5.5 km (CHIRPS, lluvia estimada por satélite y calibrada con estaciones). El color compara mayo–octubre de 2018 con el promedio de los otros diez años, 2010–2020. Café significa menos lluvia de lo normal; verde azulado, más. Los anillos marcan 5, 15, 30 y 55 km desde la planta.</p>
+  </div>
+  <div class="mapwrap">
+    <figure>
+      <div class="canvasbox" id="mapbox">
+        <canvas id="map" width="1120" height="1120" aria-label="Mapa de anomalía de lluvia 2018 alrededor de la planta"></canvas>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <figcaption>Fondo: MODIS Aqua, 24 de julio de 2018 (NASA GIBS). Pasa el cursor sobre un cuadro para ver sus valores.</figcaption>
+    </figure>
+    <div class="side">
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Capa del mapa">
+          <button id="lay-anom" aria-pressed="true">Anomalía 2018</button>
+          <button id="lay-total" aria-pressed="false">Lluvia 2018 (mm)</button>
+          <button id="lay-none" aria-pressed="false">Solo imagen</button>
+        </div>
+        <label class="rng" for="op">Opacidad <input type="range" id="op" min="0" max="100" value="62"></label>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="panel chart">
+        <h3>Anomalía 2018 por distancia a la planta</h3>
+        <svg id="ringchart" viewBox="0 0 360 170" role="img" aria-label="Barras de anomalía por anillo"></svg>
+        <p class="note">Si los cañones hubieran reducido la lluvia, el déficit sería mayor cerca y se perdería con la distancia. En 2018 se ve ese patrón.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="charts">
+  <div class="panel chart">
+    <h3>¿Es raro ese patrón? Diferencia cerca menos lejos, por año</h3>
+    <svg id="gapchart" viewBox="0 0 360 190" role="img" aria-label="Diferencia de anomalía entre 5–15 km y 30–55 km por año"></svg>
+    <p class="note">Puntos porcentuales: anomalía a 5–15 km menos anomalía a 30–55 km. 2018 es el valor más negativo de los 11 años, pero es un solo año. No prueba la causa.</p>
+  </div>
+  <div class="panel chart">
+    <h3>Mes por mes, 2018 frente a lo normal</h3>
+    <svg id="monthchart" viewBox="0 0 360 190" role="img" aria-label="Lluvia mensual 2018 contra normal, cerca y lejos"></svg>
+    <p class="note">Julio se secó en toda la región, cerca y lejos por igual. La diferencia entre zonas viene sobre todo de agosto: lejos llovió de más y cerca llovió lo normal.</p>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <h2>2. Las nubes de ese verano</h2>
+    <p>MODIS pasa sobre Puebla una vez al día, hacia la 1:30 pm, antes de que se formen casi todas las tormentas de la tarde. Estas imágenes muestran el tipo de nube que se estaba armando, no la tormenta en su punto máximo. Para ver una nube crecer y deshacerse hace falta GOES-16, que toma una imagen cada 5–15 minutos.</p>
+  </div>
+  <div class="mapwrap">
+    <figure>
+      <div class="canvasbox">
+        <img id="cl-tc" alt="Imagen MODIS en color real">
+        <img id="cl-layer" alt="" hidden>
+        <svg viewBox="0 0 560 560" aria-hidden="true">
+          <ellipse cx="280" cy="280" rx="66.6" ry="63" fill="none" stroke="#fff" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <circle cx="280" cy="280" r="6" fill="var(--mark)" stroke="#fff" stroke-width="2"/>
+          <text x="290" y="272" fill="#fff" font-family="JetBrains Mono,monospace" font-size="12" style="paint-order:stroke;stroke:#000;stroke-width:3px">VW</text>
+        </svg>
+      </div>
+      <figcaption id="cl-cap"></figcaption>
+    </figure>
+    <div class="side">
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Fecha" id="dates"></div>
+      </div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Producto">
+          <button id="p-tc" aria-pressed="true">Color real</button>
+          <button id="p-ctt" aria-pressed="false">Temperatura de cima</button>
+          <button id="p-ph" aria-pressed="false">Fase</button>
+        </div>
+      </div>
+      <div class="legend" id="cl-legend"></div>
+      <p id="cl-note" style="margin:0;font-size:.95rem"></p>
+    </div>
+  </div>
+  <div class="cloudtypes" style="margin-top:20px">
+    <div class="ct"><h3>Cúmulos (Cu)</h3><p class="t">base ~1–1.5 km · cima &gt; 0 °C · agua líquida</p><p>Los “borreguitos” del mediodía. En las imágenes de julio cubren el valle en puntos pequeños. No dan granizo.</p></div>
+    <div class="ct"><h3>Cúmulo congesto (Tcu)</h3><p class="t">cima −10 a −30 °C · mixta</p><p>Torres que siguen creciendo. Aquí se decide si la tarde termina en tormenta.</p></div>
+    <div class="ct"><h3>Cumulonimbo (Cb)</h3><p class="t">cima &lt; −40 °C · hielo · 10–15 km</p><p>La nube del granizo. El granizo crece dentro de la corriente ascendente, a varios kilómetros sobre el suelo.</p></div>
+    <div class="ct"><h3>Estratos y cirros</h3><p class="t">capas · hielo arriba, agua abajo</p><p>Restos de tormentas o frentes. Dan cielo gris con poca lluvia.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <h2>3. El ciclo hidrológico en la planta</h2>
+    <p>Datos ERA5 y ERA5-Land, un reanálisis del clima que combina modelo y observaciones, en el punto de la planta. La línea es 2018. La banda va del mínimo al máximo de los otros diez años, y la línea punteada es el promedio. Un reanálisis no “ve” los cañones; sirve para el contexto regional.</p>
+  </div>
+  <div class="charts small" id="hydro"></div>
+</section>
+
+<section>
+  <div class="prose">
+    <h2>4. Fauna: lo que los registros permiten decir</h2>
+    <p>Registros de GBIF (incluye iNaturalist y eBird) en un rectángulo de unos 30 × 30 km alrededor de la planta. Los conteos suben casi todos los años porque cada vez más gente usa esas apps, no porque haya más animales. 2018 no muestra una caída en aves ni insectos. Con datos así no se puede detectar un efecto, ni a favor ni en contra.</p>
+  </div>
+  <div class="panel tablebox">
+    <table id="gbif"></table>
+  </div>
+  <p class="src" style="max-width:75ch">Lo más sensible a una sequía local serían los anfibios (necesitan charcos temporales) y los polinizadores de la milpa. Hay solo 6 registros de anfibios en 2018. Para medir un efecto haría falta un muestreo en campo comparando parcelas cerca y lejos de la planta. El ruido de los disparos, uno cada 5–10 s durante cada tormenta, es otro efecto posible en aves y ganado que vale la pena documentar con vecinos.</p>
+</section>
+
+<section class="prose">
+  <h2>5. Lectura de conjunto</h2>
+  <div class="verdict">
+    <p><b>Lo que sí muestran los datos.</b> 2018 fue seco en la zona, sobre todo por un julio con 70–80% menos lluvia en toda la región. Además, la lluvia de la temporada fue unos 12% menor cerca de la planta que lejos, la mayor diferencia de ese tipo en 11 años.</p>
+    <p><b>Lo que no muestran.</b> Que los cañones hayan causado esa diferencia. La onda de choque de un cañón se disipa a decenas de metros y la base de un cumulonimbo está a 1–3 km. CHIRPS suaviza a ~5 km e interpola estaciones, y un solo año puede deberse a por dónde pasaron las tormentas. La sequía de julio, la que más pegó a los cultivos, fue regional.</p>
+  </div>
+  <h3 style="margin-top:20px">Siguientes pasos para confirmar o descartar</h3>
+  <ul class="clean">
+    <li><b>Estaciones del SMN (CLICOM)</b> en Cuautlancingo, Cholula, Huejotzingo y Puebla: lluvia diaria medida en el suelo, sin suavizado.</li>
+    <li><b>GOES-16, banda 13</b>, cada 10 min para las tardes de tormenta de junio a septiembre de 2018. Seguir cada celda: ¿se debilita al pasar sobre la planta más que en otras partes?</li>
+    <li><b>Registro de disparos de VW</b> (fechas y horas, quizá en el expediente de la demanda). Así se compara lluvia en días con disparos y sin ellos.</li>
+    <li><b>NDVI de Sentinel-2</b> (10 m) para medir el daño en las parcelas de los demandantes contra parcelas similares a 20–30 km.</li>
+    <li><b>IMERG</b> (cada 30 min, ~10 km) como segunda estimación de lluvia, independiente de CHIRPS.</li>
+  </ul>
+</section>
+
+<section class="src">
+  <h3 style="color:var(--ink)">Fuentes</h3>
+  <p>Lluvia: CHIRPS v2.0 mensual, 0.05°, Climate Hazards Center, UC Santa Barbara. Promedio de referencia: 2010–2017 y 2019–2020. · Nubes: MODIS Aqua color real corregido, temperatura de cima y fase de nube (infrarrojo), vía NASA GIBS. · Ciclo hidrológico: ERA5 y ERA5-Land (Copernicus/ECMWF) vía Open-Meteo, celda 19.0–19.1° N, 98.25–98.30° O. · Fauna: GBIF.org, clases Aves, Insecta, Mammalia y Amphibia, 18.98–19.25° N, 98.40–98.11° O. · Datos descargados el 16 de noviembre de 2026.</p>
+</section>
+</main>
+
+<script>
+const DATA = __DATA__;
+const IMG = __IMG__;
+const GBIF = {
+  "Aves":     {2012:1467,2013:748,2014:401,2015:660,2016:2576,2017:3738,2018:4585,2019:4244,2020:4281,2021:4607,2022:5563},
+  "Insectos": {2012:21,2013:15,2014:30,2015:16,2016:70,2017:343,2018:261,2019:421,2020:503,2021:621,2022:835},
+  "Mamíferos":{2012:1,2013:0,2014:2,2015:2,2016:4,2017:17,2018:35,2019:36,2020:36,2021:47,2022:75},
+  "Anfibios": {2012:2,2013:1,2014:0,2015:0,2016:4,2017:3,2018:6,2019:4,2020:10,2021:9,2022:11}
+};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmtPct = v => (v>0?'+':'')+v.toFixed(1).replace('.0','')+'%';
+const BBOX = {s:18.512,n:19.712,w:-98.858,e:-97.658};
+const PLANT = {lat:19.112, lon:-98.258};
+const R = DATA.rings, YEARS = [...Array(11)].map((_,i)=>2010+i);
+const anomOf = (r,y) => (r.byYear[y]/r.baseMean-1)*100;
+
+// ---- números clave
+const near = (R[0].byYear[2018]*R[0].n + R[1].byYear[2018]*R[1].n)/(R[0].n+R[1].n);
+const nearB = (R[0].baseMean*R[0].n + R[1].baseMean*R[1].n)/(R[0].n+R[1].n);
+document.getElementById('s-near').textContent = fmtPct((near/nearB-1)*100);
+document.getElementById('s-far').textContent = fmtPct(R[3].anom2018);
+const jul = R.map(r=>r.monthly['07']); const julA = jul.reduce((s,m)=>s+m.y2018,0)/jul.reduce((s,m)=>s+m.base,0);
+document.getElementById('s-jul').textContent = fmtPct((julA-1)*100);
+const gaps = YEARS.map(y=>({y,g:anomOf(R[1],y)-anomOf(R[3],y)}));
+const rank = [...gaps].sort((a,b)=>a.g-b.g).findIndex(x=>x.y===2018)+1;
+document.getElementById('s-rank').textContent = rank+'.º de 11';
+
+// ---- escala divergente
+function lerp(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}
+const DRY=[140,81,10], MID=[245,245,245], WET=[1,102,94];
+function divColor(v,lim=30){const t=Math.max(-1,Math.min(1,v/lim));return t<0?lerp(MID,DRY,-t):lerp(MID,WET,t)}
+const SEQ=[[255,255,217],[199,233,180],[127,205,187],[65,182,196],[29,145,192],[34,94,168],[12,44,132]];
+function seqColor(v,lo=600,hi=1100){let t=(v-lo)/(hi-lo);t=Math.max(0,Math.min(.9999,t))*(SEQ.length-1);const i=Math.floor(t);return lerp(SEQ[i],SEQ[i+1],t-i)}
+
+// ---- mapa
+const cv = document.getElementById('map'), ctx = cv.getContext('2d'), W = cv.width;
+const base = new Image(); base.src = IMG.base;
+const px = lon => (lon-BBOX.w)/(BBOX.e-BBOX.w)*W, py = lat => (BBOX.n-lat)/(BBOX.n-BBOX.s)*W;
+const kmx = W/((BBOX.e-BBOX.w)*111.2*Math.cos(19.112*Math.PI/180)), kmy = W/((BBOX.n-BBOX.s)*111.2);
+let layer='anom', opacity=.62;
+const PLACES=[["Puebla",19.0436,-98.1981],["Cholula",19.064,-98.303],["La Malinche",19.231,-98.032],["Popocatépetl",19.023,-98.622],["Iztaccíhuatl",19.179,-98.642],["Huejotzingo",19.159,-98.408],["Tlaxcala",19.318,-98.238]];
+function drawMap(){
+  ctx.clearRect(0,0,W,W);
+  if(base.complete) ctx.drawImage(base,0,0,W,W);
+  ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(0,0,W,W);
+  if(layer!=='none'){
+    const g=DATA.grid, dx=Math.abs(g.dx)*W/(BBOX.e-BBOX.w), dy=Math.abs(g.dy)*W/(BBOX.n-BBOX.s);
+    ctx.globalAlpha=opacity;
+    for(const c of DATA.cells){const col=layer==='anom'?divColor(c.anom):seqColor(c.y2018);ctx.fillStyle=`rgb(${col})`;ctx.fillRect(px(c.lon)-dx/2,py(c.lat)-dy/2,dx+.6,dy+.6)}
+    ctx.globalAlpha=1;
+  }
+  ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=2;ctx.setLineDash([8,8]);
+  ctx.font='600 20px JetBrains Mono, monospace';ctx.fillStyle='#fff';
+  for(const k of [5,15,30,55]){ctx.beginPath();ctx.ellipse(px(PLANT.lon),py(PLANT.lat),k*kmx,k*kmy,0,0,Math.PI*2);ctx.stroke();
+    ctx.save();ctx.lineWidth=5;ctx.strokeStyle='rgba(0,0,0,.7)';ctx.setLineDash([]);ctx.strokeText(k+' km',px(PLANT.lon)+6,py(PLANT.lat)-k*kmy-6);ctx.restore();ctx.fillText(k+' km',px(PLANT.lon)+6,py(PLANT.lat)-k*kmy-6)}
+  ctx.setLineDash([]);
+  ctx.font='600 22px Source Sans 3, system-ui, sans-serif';
+  for(const [n,la,lo] of PLACES){const x=px(lo),y=py(la);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();
+    ctx.lineWidth=5;ctx.strokeStyle='rgba(0,0,0,.75)';ctx.strokeText(n,x+8,y+7);ctx.fillText(n,x+8,y+7)}
+  const x=px(PLANT.lon),y=py(PLANT.lat);ctx.fillStyle=css('--mark')||'#d23a2a';ctx.strokeStyle='#fff';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(x,y,10,0,7);ctx.fill();ctx.stroke();
+  ctx.font='700 22px JetBrains Mono, monospace';ctx.lineWidth=5;ctx.strokeStyle='rgba(0,0,0,.8)';ctx.strokeText('VW',x+14,y+24);ctx.fillStyle='#fff';ctx.fillText('VW',x+14,y+24);
+}
+base.onload=drawMap; drawMap();
+function setLegend(){
+  const L=document.getElementById('legend');
+  if(layer==='anom') L.innerHTML=`<span>Lluvia mayo–oct 2018 frente a la normal</span><div class="ramp" style="background:linear-gradient(90deg,rgb(${DRY}),rgb(${MID}),rgb(${WET}))"></div><div class="ticks"><span>−30%</span><span>−15%</span><span>0</span><span>+15%</span><span>≥+30%</span></div>`;
+  else if(layer==='total') L.innerHTML=`<span>Lluvia total mayo–oct 2018</span><div class="ramp" style="background:linear-gradient(90deg,${SEQ.map(c=>`rgb(${c})`).join(',')})"></div><div class="ticks"><span>600 mm</span><span>850</span><span>1,100 mm</span></div>`;
+  else L.innerHTML=`<span>Imagen MODIS sin capa de datos.</span>`;
+}
+setLegend();
+function seg(ids,cb){ids.forEach(id=>document.getElementById(id).addEventListener('click',()=>{ids.forEach(j=>document.getElementById(j).setAttribute('aria-pressed',j===id));cb(id)}))}
+seg(['lay-anom','lay-total','lay-none'],id=>{layer=id.slice(4);setLegend();drawMap()});
+document.getElementById('op').addEventListener('input',e=>{opacity=e.target.value/100;drawMap()});
+const tip=document.getElementById('tip'), box=document.getElementById('mapbox');
+cv.addEventListener('mousemove',e=>{
+  const r=cv.getBoundingClientRect(), mx=(e.clientX-r.left)/r.width*W, my=(e.clientY-r.top)/r.height*W;
+  const lon=BBOX.w+mx/W*(BBOX.e-BBOX.w), lat=BBOX.n-my/W*(BBOX.n-BBOX.s);
+  let best=null,bd=1e9;for(const c of DATA.cells){const d=Math.abs(c.lat-lat)+Math.abs(c.lon-lon);if(d<bd){bd=d;best=c}}
+  if(!best||bd>.06){tip.hidden=true;return}
+  tip.hidden=false;tip.innerHTML=`${best.lat.toFixed(3)}°N ${(-best.lon).toFixed(3)}°O · ${best.d} km<br>2018: ${best.y2018} mm · normal: ${best.base} mm<br>anomalía: <b>${fmtPct(best.anom)}</b>`;
+  const tx=e.clientX-r.left, ty=e.clientY-r.top; tip.style.left=Math.min(tx+12,r.width-tip.offsetWidth-4)+'px'; tip.style.top=(ty>r.height-70?ty-60:ty+14)+'px';
+});
+cv.addEventListener('mouseleave',()=>tip.hidden=true);
+
+// ---- utilidades SVG
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;parent&&parent.appendChild(e);return e}
+
+// barras por anillo
+(function(){
+  const s=document.getElementById('ringchart'), x0=110, x1=340, lim=15, sx=v=>x0+(v+lim)/(2*lim)*(x1-x0);
+  for(const t of [-15,-10,-5,0,5,10,15]){el('line',{x1:sx(t),x2:sx(t),y1:10,y2:150,stroke:css('--line'),'stroke-width':t===0?1.5:1},s);el('text',{x:sx(t),y:164,'text-anchor':'middle'},s,(t>0?'+':'')+t+'%')}
+  R.forEach((r,i)=>{const y=18+i*33, v=r.anom2018;
+    el('text',{x:0,y:y+15},s,r.label);
+    el('rect',{x:Math.min(sx(0),sx(v)),y,width:Math.max(1.5,Math.abs(sx(v)-sx(0))),height:20,fill:v<0?css('--dry'):css('--wet')},s);
+    el('text',{x:v<0?sx(v)-4:sx(v)+4,y:y+14,'text-anchor':v<0?'end':'start',style:'fill:var(--ink)'},s,fmtPct(v));
+  });
+})();
+// diferencia por año
+(function(){
+  const s=document.getElementById('gapchart'), x0=34,x1=352,y0=14,y1=160, lo=-14,hi=10;
+  const sx=i=>x0+(i+.5)/YEARS.length*(x1-x0), sy=v=>y0+(hi-v)/(hi-lo)*(y1-y0);
+  for(const t of [-12,-8,-4,0,4,8]){el('line',{x1:x0,x2:x1,y1:sy(t),y2:sy(t),stroke:css('--line'),'stroke-width':t===0?1.5:1},s);el('text',{x:x0-4,y:sy(t)+3,'text-anchor':'end'},s,t)}
+  gaps.forEach((g,i)=>{const is=g.y===2018, w=18;
+    el('rect',{x:sx(i)-w/2,y:Math.min(sy(0),sy(g.g)),width:w,height:Math.max(1,Math.abs(sy(g.g)-sy(0))),fill:is?css('--mark'):css('--muted'),opacity:is?1:.55},s);
+    el('text',{x:sx(i),y:178,'text-anchor':'middle',style:is?'fill:var(--ink);font-weight:600':''},s,String(g.y).slice(2));
+    if(is) el('text',{x:sx(i),y:sy(g.g)+14,'text-anchor':'middle',style:'fill:var(--ink);font-weight:600'},s,g.g.toFixed(1));
+  });
+  el('text',{x:x1,y:188,'text-anchor':'end'},s,'año (20xx)');
+})();
+// mensual
+(function(){
+  const s=document.getElementById('monthchart'), M=['05','06','07','08','09','10'], ML=['may','jun','jul','ago','sep','oct'];
+  const x0=36,x1=352,y0=22,y1=160, hi=240, sy=v=>y1-v/hi*(y1-y0), bw=(x1-x0)/M.length;
+  for(const t of [0,60,120,180,240]){el('line',{x1:x0,x2:x1,y1:sy(t),y2:sy(t),stroke:css('--line')},s);el('text',{x:x0-4,y:sy(t)+3,'text-anchor':'end'},s,t)}
+  el('text',{x:x0-4,y:10,'text-anchor':'end'},s,'mm');
+  M.forEach((m,i)=>{const cx=x0+i*bw+bw/2, w=bw*.3;
+    [[R[1],-1,css('--dry')],[R[3],1,css('--storm')]].forEach(([r,sgn,col])=>{const v=r.monthly[m];const x=cx+sgn*w*.55-w/2;
+      el('rect',{x,y:sy(v.y2018),width:w,height:y1-sy(v.y2018),fill:col,opacity:.9},s);
+      el('line',{x1:x-2,x2:x+w+2,y1:sy(v.base),y2:sy(v.base),stroke:css('--ink'),'stroke-width':2},s)});
+    el('text',{x:cx,y:174,'text-anchor':'middle'},s,ML[i]);
+  });
+  const lg=[[css('--dry'),'5–15 km'],[css('--storm'),'30–55 km']];
+  lg.forEach(([c,t],i)=>{el('rect',{x:x0+8+i*96,y:4,width:10,height:10,fill:c},s);el('text',{x:x0+22+i*96,y:13},s,t)});
+  el('line',{x1:x0+200,x2:x0+216,y1:9,y2:9,stroke:css('--ink'),'stroke-width':2},s);el('text',{x:x0+220,y:13},s,'normal');
+})();
+
+// ---- visor de nubes
+const DATES=[
+ ["2018-06-08","8 jun","Inicio de temporada. Cúmulos repartidos sobre todo el valle y torres más grandes hacia los volcanes. ERA5: 79% nubes, sin lluvia en la celda."],
+ ["2018-07-10","10 jul","Canícula. Mucha nube convectiva a mediodía, pero la lluvia de la tarde fue casi nula (1.2 mm). Así se ve un día de nubes que no llegan a llover."],
+ ["2018-07-24","24 jul","Cielo casi despejado en el valle (17% nubes). Julio de 2018 fue de los más secos de la década en toda la región."],
+ ["2018-08-25","25 ago","Agosto recuperó la lluvia. Cúmulos alineados con las sierras y nubes de hielo al norte."],
+ ["2018-09-21","21 sep","Septiembre lluvioso. Nubosidad extensa y torres con cima helada; ERA5 registra 7.7 mm en la celda."]
+];
+let curDate=DATES[0][0], prod='tc';
+const dWrap=document.getElementById('dates');
+DATES.forEach(([d,l])=>{const b=document.createElement('button');b.textContent=l;b.dataset.d=d;b.setAttribute('aria-pressed',d===curDate);b.addEventListener('click',()=>{curDate=d;[...dWrap.children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===d));showCloud()});dWrap.appendChild(b)});
+seg(['p-tc','p-ctt','p-ph'],id=>{prod=id.slice(2);showCloud()});
+const CTT=[["150–220 K (< −53 °C)","102,0,119"],["225","0,0,100"],["235","0,0,255"],["245","0,80,0"],["255","0,220,0"],["265","240,190,64"],["275","122,90,3"],["285","170,0,0"],[">290 K (> 17 °C)","255,0,0"]];
+function showCloud(){
+  const tc=document.getElementById('cl-tc'), ly=document.getElementById('cl-layer'), L=document.getElementById('cl-legend');
+  tc.src=IMG['tc_'+curDate];
+  if(prod==='tc'){ly.hidden=true;tc.style.filter='';L.innerHTML='<span>Color real corregido. Blanco: nube; verde y café: suelo y vegetación.</span>'}
+  else{ly.src=IMG[prod+'_'+curDate];ly.hidden=false;tc.style.filter='grayscale(1) brightness(.55)';
+    L.innerHTML = prod==='ctt'
+      ? `<span>Temperatura de la cima de la nube (K). Morado y azul: cimas muy frías y altas, típicas de cumulonimbo. Rojo y café: cimas tibias y bajas.</span><div class="ramp" style="background:linear-gradient(90deg,${CTT.map(c=>`rgb(${c[1]})`).join(',')})"></div><div class="ticks"><span>−53 °C</span><span>−38</span><span>−18</span><span>+2</span><span>+17 °C</span></div>`
+      : `<span>Fase de la nube por infrarrojo (donde no hay color, está despejado)</span><div class="swatches"><span class="sw"><i style="background:rgb(0,0,100)"></i>agua líquida</span><span class="sw"><i style="background:rgb(188,210,254)"></i>hielo</span><span class="sw"><i style="background:rgb(120,38,32)"></i>mixta</span><span class="sw"><i style="background:rgb(240,190,64)"></i>indeterminada</span></div>`}
+  const d=DATES.find(x=>x[0]===curDate);
+  document.getElementById('cl-note').textContent=d[2];
+  document.getElementById('cl-cap').textContent=`MODIS Aqua, ${d[1]} de 2018, ~13:30 h. Área de 126 × 133 km; el óvalo marca 15 km alrededor de la planta. Los productos de nube tienen pixeles de ~5 km.`;
+}
+showCloud();
+
+// ---- ciclo hidrológico
+(function(){
+  const H=document.getElementById('hydro'), MM=['abr','may','jun','jul','ago','sep','oct','nov'];
+  const defs=[["precip","Lluvia mensual","mm",1,"Julio: 69 mm contra ~200 normales. Octubre y noviembre, muy por encima."],
+              ["cloud","Nubosidad media","%",1,"Menos nubes en julio de 2018, un rasgo regional; la celda de ERA5 mide ~25 km."],
+              ["soil","Humedad del suelo, 7–28 cm","m³/m³",1000,"El suelo se secó en julio y se recuperó en agosto y septiembre (gráfica en milésimas)."],
+              ["et0","Evapotranspiración de referencia","mm",1,"Demanda de agua de la atmósfera: más alta en un julio soleado."]];
+  for(const [k,t,u,mul,note] of defs){
+    const d=document.createElement('div');d.className='panel chart';d.innerHTML=`<h3>${t}</h3>`;
+    const s=el('svg',{viewBox:'0 0 300 160',role:'img','aria-label':t},d);
+    const rows=DATA.era[k].map(r=>({m:r.m,y:r.y2018*mul,b:r.base*mul,lo:r.min*mul,hi:r.max*mul}));
+    const mx=Math.max(...rows.flatMap(r=>[r.y,r.hi])), mn=Math.min(0,...rows.map(r=>r.lo));
+    const step=Math.pow(10,Math.floor(Math.log10(mx/2))), top=Math.ceil(mx/step/2)*step*2;
+    const lo= k==='soil'?Math.floor(Math.min(...rows.map(r=>Math.min(r.y,r.lo)))/50)*50:mn;
+    const x0=38,x1=292,y0=12,y1=134, sx=i=>x0+i/(rows.length-1)*(x1-x0), sy=v=>y1-(v-lo)/(top-lo)*(y1-y0);
+    for(let i=0;i<=4;i++){const v=lo+(top-lo)*i/4;el('line',{x1:x0,x2:x1,y1:sy(v),y2:sy(v),stroke:css('--line')},s);el('text',{x:x0-4,y:sy(v)+3,'text-anchor':'end'},s,Math.round(v))}
+    el('path',{d:rows.map((r,i)=>(i?'L':'M')+sx(i)+','+sy(r.hi)).join('')+rows.slice().reverse().map((r,j)=>'L'+sx(rows.length-1-j)+','+sy(r.lo)).join('')+'Z',fill:css('--storm'),opacity:.16},s);
+    el('path',{d:rows.map((r,i)=>(i?'L':'M')+sx(i)+','+sy(r.b)).join(''),fill:'none',stroke:css('--muted'),'stroke-width':1.5,'stroke-dasharray':'4 3'},s);
+    el('path',{d:rows.map((r,i)=>(i?'L':'M')+sx(i)+','+sy(r.y)).join(''),fill:'none',stroke:css('--dry'),'stroke-width':2.5},s);
+    rows.forEach((r,i)=>{el('circle',{cx:sx(i),cy:sy(r.y),r:r.m==='07'?4:2.5,fill:css('--dry')},s);el('text',{x:sx(i),y:150,'text-anchor':'middle'},s,MM[i])});
+    el('text',{x:x0,y:8},s,u);
+    const p=document.createElement('p');p.className='note';p.textContent=note;d.appendChild(p);H.appendChild(d);
+  }
+})();
+
+// ---- tabla GBIF
+(function(){
+  const t=document.getElementById('gbif'), ys=[2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022];
+  t.innerHTML='<thead><tr><th>Clase</th>'+ys.map(y=>`<th class="${y===2018?'hl':''}">${y}</th>`).join('')+'</tr></thead><tbody>'+
+    Object.entries(GBIF).map(([k,v])=>`<tr><td>${k}</td>`+ys.map(y=>`<td class="${y===2018?'hl':''}">${v[y].toLocaleString('es-MX')}</td>`).join('')+'</tr>').join('')+'</tbody>';
+})();
+
+// recolorear SVGs si cambia el tema
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>location.reload());
+</script>

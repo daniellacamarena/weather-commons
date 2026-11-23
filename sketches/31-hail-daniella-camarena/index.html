@@ -3,79 +3,412 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>31 · The water cycle · Realtime Weather</title>
-<!-- style.css is the shared Realtime Weather look, copied into this folder. Add your own styles below it. -->
-<link rel="stylesheet" href="style.css">
+<title>Weather Commons</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@400;600;700&display=swap">
+<style>
+/* Full-bleed globe with a printed black-on-white panel, matching the plates. */
+:root{--paper:#ffffff;--ink:#000000;--soft:#3a3a3a;--space:#05070a;
+  --dry:#a6611a;--wet:#018571;
+  --head:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;--mono:"IBM Plex Mono",Consolas,monospace;}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--space);color:var(--ink);font-family:var(--head)}
+#map{position:fixed;inset:0}
+button{font:inherit;color:inherit;background:var(--paper);border:2px solid var(--ink);cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 5px var(--ink)}
+
+.panel{position:fixed;z-index:2;top:16px;left:16px;bottom:16px;width:380px;background:var(--paper);border:2px solid var(--ink);
+  display:flex;flex-direction:column;overflow:hidden}
+.panel header{padding:16px 18px 12px;border-bottom:2px solid var(--ink)}
+.panel h1{margin:0;font-size:1.7rem;letter-spacing:.03em;text-transform:uppercase;line-height:1.05}
+.panel .sub{font-family:var(--mono);font-size:.75rem;color:var(--soft);margin:6px 0 0}
+.pnav{display:flex;flex-wrap:wrap;gap:2px 14px;margin:8px 0 0;padding:0;list-style:none;font-family:var(--mono);font-size:.78rem}.pnav a{color:var(--ink);display:inline-block;padding:4px 0}.pnav a[aria-current=page]{font-weight:600;text-decoration-thickness:3px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:2px solid var(--ink)}
+.tabs button{border:0;padding:10px 6px;min-height:52px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:.85rem;line-height:1.1}
+.tabs button+button{border-left:2px solid var(--ink)}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.tabs small{display:block;font-family:var(--mono);font-weight:400;text-transform:none;letter-spacing:0;font-size:.68rem;margin-top:2px}
+.body{flex:1;overflow-y:auto;padding:14px 18px 18px;display:flex;flex-direction:column;gap:14px}
+.body h2{margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:.05em}
+.body p{margin:0;font-size:.95rem;line-height:1.45}
+.mono{font-family:var(--mono);font-size:.78rem;color:var(--soft)}
+.layers{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--ink);padding-top:10px}
+.layer{display:grid;grid-template-columns:22px 28px 1fr;gap:8px;align-items:center;min-height:36px;cursor:pointer;font-size:.92rem}
+.layer input{width:18px;height:18px;margin:0;accent-color:#000}
+.layer .sw{width:28px;height:0;border-top:3px solid var(--ink)}
+.layer .sw.reported{border-top-style:dashed}
+.layer .sw.speculated{border-top-style:dotted;border-top-width:4px}
+.layer .sw.img{height:14px;border:2px solid var(--ink);background:linear-gradient(135deg,#dfe6ee,#7f8d9c)}
+.layer .sw.grid{height:14px;border:1px solid var(--ink);background:linear-gradient(90deg,var(--dry),#f3efe6,var(--wet))}
+.layer small{display:block;font-family:var(--mono);font-size:.7rem;color:var(--soft)}
+.evidence{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--mono);font-size:.72rem}
+.evidence span{display:inline-flex;align-items:center;gap:6px}
+.evidence i{display:inline-block;width:24px;border-top:3px solid var(--ink)}
+.evidence i.r{border-top-style:dashed}.evidence i.s{border-top-style:dotted;border-top-width:4px}
+.timebox{border:2px solid var(--ink);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.timebox .date{font-size:1.35rem;font-weight:700}
+.timebox input[type=range]{width:100%;accent-color:#000}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{padding:8px 14px;min-height:40px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.82rem}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stats div{border-top:1px solid var(--ink);padding-top:4px}
+.stats b{display:block;font-size:1.2rem}
+.bar{height:6px;background:#eee;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:6px 10px;min-height:40px;font-size:.82rem;text-align:left;line-height:1.15}
+.chips button small{display:block;font-family:var(--mono);font-size:.68rem}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.legendbar{height:10px;background:linear-gradient(90deg,var(--dry),#f3efe6,var(--wet));border:1px solid var(--ink)}
+.legendlab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.7rem}
+nav.pages{display:flex;flex-direction:column;gap:0;border-top:2px solid var(--ink)}
+nav.pages a{color:var(--ink);text-decoration:none;padding:9px 0;border-bottom:1px solid var(--ink);display:flex;justify-content:space-between;gap:8px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:.85rem}
+nav.pages a span{font-family:var(--mono);font-weight:400;text-transform:none;letter-spacing:0;font-size:.72rem;color:var(--soft);text-align:right}
+nav.pages a.soon{color:#888;pointer-events:none}
+.credit{font-family:var(--mono);font-size:.66rem;color:var(--soft)}
+
+/* map labels (HTML markers) */
+.pin{font-family:var(--head);font-size:12px;font-weight:700;color:var(--ink);background:var(--paper);border:2px solid var(--ink);padding:2px 6px;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;pointer-events:none;transform:translateY(-14px)}
+.pin small{display:block;font-family:var(--mono);font-weight:400;text-transform:none;letter-spacing:0;font-size:10px}
+.pin.reported{border-style:dashed}
+.pin.speculated{border-style:dotted;font-style:italic}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--ink);border:2px solid #fff}
+.stamp{position:fixed;z-index:2;right:16px;bottom:16px;background:var(--paper);border:2px solid var(--ink);padding:6px 10px;font-family:var(--mono);font-size:.72rem;max-width:min(360px,calc(100vw - 32px))}
+
+@media (max-width:760px){
+  .panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:58vh;border-width:2px 0 0}
+  .panel header{padding:10px 16px 8px}
+  .panel h1{font-size:1.3rem}
+  .panel .sub{display:none}
+  .body{padding:12px 16px 16px}
+  .stamp{top:12px;bottom:auto;right:60px;left:12px;max-width:none}
+}
+</style>
 </head>
 <body>
-<main>
-<header class="site-header">
-  <div class="brand"><a class="wordmark" href="../">Realtime Weather</a><span class="tagline">Part of <a href="https://tba21.org/uni_weathercommons">Weather Commons</a>, TBA21–Academy UNI</span></div>
-  <nav aria-label="Site">
-    <a href="../">Sketches</a>
-    <a href="../guide/">Guide</a>
-    <a href="../catalog/">Catalog</a>
-    <a href="https://github.com/RealtimeUrbanismLab/weather-commons/blob/main/CONTRIBUTING.md">Contribute</a>
-    <a href="https://community.ocean-archive.org/spaces/25478985">Community</a>
+<div id="map" role="img" aria-label="Globe showing current clouds, with layers for weather modification events in Puebla, Mexico"></div>
+
+<aside class="panel">
+  <header>
+    <h1>Weather Commons</h1>
+    <p class="sub">Who gets to move a cloud? Two ways weather has been modified in Puebla, Mexico, set on the clouds of today.</p>
+    <nav aria-label="Site"><ul class="pnav"><li><a href="index.html" aria-current="page">Globe</a></li><li><a href="comparison.html">Comparison</a></li><li><a href="hail-cannon-2018.html">Hail cannon</a></li><li><a href="tiemperos-2025.html">Tiemperos</a></li><li><a href="archive.html">Archive</a></li></ul></nav>
+  </header>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-mode="now" aria-selected="true">Now<small>live clouds</small></button>
+    <button role="tab" data-mode="hail" aria-selected="false">Hail cannon<small>VW · 2018</small></button>
+    <button role="tab" data-mode="tiemp" aria-selected="false">Tiemperos<small>volcanoes</small></button>
+  </div>
+  <div class="body" id="body"></div>
+</aside>
+<div class="stamp" id="stamp" aria-live="polite"></div>
+
+<template id="t-now">
+  <p>These are the clouds over the Earth right now. Over the Americas they come from the GOES-East satellite, updated every 10 minutes, at night too. The rest of the world shows the latest complete day of daytime passes.</p>
+  <div class="layers">
+    <label class="layer"><input type="checkbox" data-layer="goes" checked><i class="sw img"></i><span>Live clouds, Americas<small>observed · GOES-East GeoColor</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="viirs" checked><i class="sw img"></i><span>Latest full day of clouds, world<small>observed · VIIRS NOAA-20</small></span></label>
+  </div>
+  <p>Two events changed, or claimed to change, the clouds over Puebla. Open one to see its layers.</p>
+  <div class="chips">
+    <button data-go="hail">Hail cannon<small>a car plant pushes clouds away · 2018</small></button>
+    <button data-go="tiemp">Tiemperos<small>villages call the rain · every year</small></button>
+  </div>
+  <div class="evidence"><span><i></i>observed</span><span><i class="r"></i>reported (press, ethnography)</span><span><i class="s"></i>interpretive</span></div>
+  <nav class="pages" aria-label="Pages">
+    <a href="comparison.html">Two ways to touch a cloud<span>Horton’s cycle, side by side</span></a>
+    <a href="hail-cannon-2018.html">The hail cannon<span>drawing · 2018</span></a>
+    <a href="tiemperos-2025.html">The tiemperos<span>drawing · ritual year</span></a>
+    <a href="nubes-almecatla-2018.html">Nubes sobre Almecatla<span>rain and cloud data · 2018</span></a>
+    <a href="archive.html">Archive<span>Tlaloc, Chalchiuhtlicue, first observations</span></a>
   </nav>
-</header>
+  <p class="credit">Imagery: NASA GIBS / Worldview (GOES-East ABI GeoColor, VIIRS NOAA-20, MODIS Aqua, Blue Marble). Map: MapLibre.</p>
+</template>
 
-<h1>The water cycle</h1>
+<template id="t-hail">
+  <p>In 2018 the Volkswagen plant at San Lorenzo Almecatla fired three hail cannons at storm clouds to protect new cars parked in the open. Farmers nearby said the rain stopped coming.</p>
+  <div class="timebox">
+    <div class="row" style="justify-content:space-between"><span class="date" id="h-date"></span><span class="mono" id="h-auto"></span></div>
+    <input type="range" id="h-slider" min="0" max="0" value="0" aria-label="Day in the 2018 rainy season">
+    <div class="row"><button class="btn" id="h-play" aria-pressed="false">▶ Play the season</button><button class="btn" id="h-jul">24 July</button></div>
+    <div class="stats">
+      <div><span class="mono">rain at the plant · reanalysed</span><b id="h-p"></b><div class="bar"><i id="h-pbar"></i></div></div>
+      <div><span class="mono">cloud cover · reanalysed</span><b id="h-c"></b><div class="bar"><i id="h-cbar"></i></div></div>
+    </div>
+    <span class="mono">Satellite image: MODIS Aqua, early afternoon pass of that day. Numbers: ERA5 reanalysis for the plant’s grid cell.</span>
+  </div>
+  <div class="layers">
+    <label class="layer"><input type="checkbox" data-layer="event" checked><i class="sw img"></i><span>Clouds on that day<small>observed · MODIS Aqua</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="chirps" checked><i class="sw grid"></i><span>2018 season rain vs normal<small>observed · CHIRPS, May–Oct, 2010–2020 normal</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="hail-rings" checked><i class="sw"></i><span>Distance rings, 5 / 15 / 30 km<small>observed · CHIRPS averaged within each ring</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="hail-reach" checked><i class="sw reported"></i><span>Plant and the cannons’ claimed reach<small>reported · 500 m radius, Expansión 2018</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="hail-spec" checked><i class="sw speculated"></i><span>The farmers’ account as movement<small>interpretive · clouds splitting before the fields</small></span></label>
+  </div>
+  <div><div class="legendbar"></div><div class="legendlab"><span id="lg-min"></span><span>normal</span><span id="lg-max"></span></div></div>
+  <p class="mono" id="h-rings"></p>
+  <p class="mono">The interpretive arrows draw the farmers’ claim. They are not an observed storm track; the real direction of each storm is not known here.</p>
+</template>
 
-<!-- 1. Event: what are you looking at, and what do you want to find out? -->
-<p class="lede">When a hailstorm is coming, who gets a warning in time to protect crops, homes and bodies, and who is left to count the damage afterwards?</p>
-<p class="muted small">31 · Daniella · started 2026-11-02</p>
+<template id="t-tiemp">
+  <p>In the villages on Popocatépetl and Iztaccíhuatl, tiemperos climb to caves and crosses to call the rain and turn the hail aside. Their calendar follows the rainy season. Pick a ritual day to see that day’s clouds over the volcanoes.</p>
+  <div class="chips" id="t-days"></div>
+  <span class="mono" id="t-note"></span>
+  <div class="layers">
+    <label class="layer"><input type="checkbox" data-layer="event" checked><i class="sw img"></i><span>Clouds on that day<small>observed · VIIRS NOAA-20</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="tiemp-places" checked><i class="sw reported"></i><span>Volcanoes and villages<small>reported · ethnography and press</small></span></label>
+    <label class="layer"><input type="checkbox" data-layer="tiemp-spec" checked><i class="sw speculated"></i><span>Moist air rising up the slopes<small>interpretive · schematic, not an observed wind</small></span></label>
+  </div>
+  <p class="mono">El Ombligo (~4,200 m) and the Alcalican cave are on Popocatépetl, but their exact positions are not mapped here.</p>
+  <p class="mono">“Una nube, quieta o en movimiento, es la expresión de una voluntad.” Julio Glockner, <i>Ciencias</i> 90, 2008.</p>
+</template>
 
-<!-- 2. Simulate: a first model. This placeholder shows dots drifting in one steady wind. -->
-<h2>Simulate</h2>
-<canvas id="view" width="1200" height="600"></canvas>
-<p class="label">Synthetic: a steady east wind, made up for this template. Not observed data.</p>
-
-<!-- 3. Situate: where, when, who. Add a map, places, institutions, dates. -->
-<h2>Situate</h2>
-<p>Where and when does this happen? Who runs it, who is affected, and who decides?</p>
-
-<!-- 4. Narrate: the story in a few sentences, and what the model cannot show. -->
-<h2>Narrate</h2>
-<p>Tell the story in a few sentences.</p>
-
-<h2>Sources and limits</h2>
-<ul>
-  <li>Moving dots under Simulate: synthetic. A steady wind made up for the starter template. They are not hail, not a real storm and not observed data.</li>
-  <li>The question above: interpretive. It is a starting point written for this first page, to be revised.</li>
-  <li>No real datasets yet. Each one added will be listed here: who made it, when, its licence, and whether it is observed, reanalysed, modelled, synthetic or interpretive.</li>
-</ul>
-<p>What this sketch cannot show yet: any real hailstorm, place, date, warning or damage. Everything on this page is a placeholder until real sources are added.</p>
-
-<footer class="site-footer">
-  <p>The water cycle · Daniella · Realtime Weather working group, Weather Commons</p>
-</footer>
-</main>
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <script>
-  // A tiny simulation: dots carried by a steady wind, with a little random spread.
-  // Replace it with your own model. Load your own files with relative paths, e.g. fetch('data/my-file.json').
-  const canvas = document.getElementById('view');
-  const ctx = canvas.getContext('2d');
-  const ink = getComputedStyle(document.body).color;           // black, or white in dark mode
-  const paper = getComputedStyle(document.body).backgroundColor;
-  const wind = { east: 1.2, north: 0.2 }; // pixels per frame (synthetic)
-  const spread = 0.6;                      // random wobble per frame
-  const dots = Array.from({ length: 1500 }, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height }));
+const DATA = {"grid":{"w":23,"h":23,"lon0":-98.84999879077077,"lat0":19.699999548494816,"dx":0.05000000074505806,"dy":-0.05000000074505806},"cells":[{"lat":19.675,"lon":-98.825,"anom":46.6,"base":484,"y2018":710},{"lat":19.675,"lon":-98.775,"anom":42,"base":523,"y2018":743},{"lat":19.675,"lon":-98.725,"anom":39.6,"base":555,"y2018":774},{"lat":19.675,"lon":-98.675,"anom":37.8,"base":565,"y2018":779},{"lat":19.675,"lon":-98.625,"anom":33.3,"base":561,"y2018":748},{"lat":19.675,"lon":-98.575,"anom":33.2,"base":511,"y2018":680},{"lat":19.675,"lon":-98.525,"anom":28.5,"base":477,"y2018":613},{"lat":19.675,"lon":-98.475,"anom":25.9,"base":470,"y2018":592},{"lat":19.675,"lon":-98.425,"anom":24.5,"base":502,"y2018":625},{"lat":19.675,"lon":-98.375,"anom":19.8,"base":514,"y2018":616},{"lat":19.675,"lon":-98.325,"anom":18.4,"base":513,"y2018":607},{"lat":19.675,"lon":-98.275,"anom":20.4,"base":560,"y2018":675},{"lat":19.675,"lon":-98.225,"anom":12.9,"base":535,"y2018":605},{"lat":19.675,"lon":-98.175,"anom":13.8,"base":587,"y2018":668},{"lat":19.675,"lon":-98.125,"anom":13,"base":603,"y2018":681},{"lat":19.675,"lon":-98.075,"anom":10.5,"base":637,"y2018":704},{"lat":19.675,"lon":-98.025,"anom":11.5,"base":772,"y2018":861},{"lat":19.675,"lon":-97.975,"anom":-1.4,"base":769,"y2018":758},{"lat":19.675,"lon":-97.925,"anom":-1,"base":700,"y2018":692},{"lat":19.675,"lon":-97.875,"anom":-3.4,"base":717,"y2018":692},{"lat":19.675,"lon":-97.825,"anom":-3.2,"base":689,"y2018":667},{"lat":19.675,"lon":-97.775,"anom":-4.2,"base":633,"y2018":607},{"lat":19.675,"lon":-97.725,"anom":-13.7,"base":626,"y2018":540},{"lat":19.625,"lon":-98.825,"anom":42.2,"base":455,"y2018":647},{"lat":19.625,"lon":-98.775,"anom":39.3,"base":473,"y2018":659},{"lat":19.625,"lon":-98.725,"anom":36.5,"base":551,"y2018":753},{"lat":19.625,"lon":-98.675,"anom":29.5,"base":612,"y2018":792},{"lat":19.625,"lon":-98.625,"anom":29.7,"base":619,"y2018":803},{"lat":19.625,"lon":-98.575,"anom":28.1,"base":549,"y2018":704},{"lat":19.625,"lon":-98.525,"anom":22.8,"base":523,"y2018":642},{"lat":19.625,"lon":-98.475,"anom":17.4,"base":512,"y2018":601},{"lat":19.625,"lon":-98.425,"anom":14.4,"base":529,"y2018":605},{"lat":19.625,"lon":-98.375,"anom":12.9,"base":544,"y2018":614},{"lat":19.625,"lon":-98.325,"anom":11.4,"base":536,"y2018":598},{"lat":19.625,"lon":-98.275,"anom":14.7,"base":572,"y2018":656},{"lat":19.625,"lon":-98.225,"anom":11.2,"base":548,"y2018":609},{"lat":19.625,"lon":-98.175,"anom":10.6,"base":613,"y2018":678},{"lat":19.625,"lon":-98.125,"anom":8.5,"base":566,"y2018":614},{"lat":19.625,"lon":-98.075,"anom":6.7,"base":499,"y2018":532},{"lat":19.625,"lon":-98.025,"anom":7.2,"base":658,"y2018":706},{"lat":19.625,"lon":-97.975,"anom":-1.6,"base":637,"y2018":627},{"lat":19.625,"lon":-97.925,"anom":-2.7,"base":696,"y2018":677},{"lat":19.625,"lon":-97.875,"anom":-6.1,"base":749,"y2018":703},{"lat":19.625,"lon":-97.825,"anom":-8.9,"base":812,"y2018":740},{"lat":19.625,"lon":-97.775,"anom":-9.6,"base":744,"y2018":673},{"lat":19.625,"lon":-97.725,"anom":-14.5,"base":690,"y2018":590},{"lat":19.575,"lon":-98.825,"anom":41.8,"base":500,"y2018":709},{"lat":19.575,"lon":-98.775,"anom":34.4,"base":505,"y2018":678},{"lat":19.575,"lon":-98.725,"anom":33.9,"base":602,"y2018":807},{"lat":19.575,"lon":-98.675,"anom":26.6,"base":696,"y2018":881},{"lat":19.575,"lon":-98.625,"anom":20.6,"base":757,"y2018":913},{"lat":19.575,"lon":-98.575,"anom":18.8,"base":722,"y2018":858},{"lat":19.575,"lon":-98.525,"anom":14.3,"base":624,"y2018":714},{"lat":19.575,"lon":-98.475,"anom":10.1,"base":571,"y2018":629},{"lat":19.575,"lon":-98.425,"anom":6.4,"base":595,"y2018":633},{"lat":19.575,"lon":-98.375,"anom":5.6,"base":634,"y2018":670},{"lat":19.575,"lon":-98.325,"anom":9.6,"base":616,"y2018":675},{"lat":19.575,"lon":-98.275,"anom":14.6,"base":629,"y2018":721},{"lat":19.575,"lon":-98.225,"anom":7.7,"base":576,"y2018":621},{"lat":19.575,"lon":-98.175,"anom":3.1,"base":608,"y2018":627},{"lat":19.575,"lon":-98.125,"anom":3.9,"base":628,"y2018":652},{"lat":19.575,"lon":-98.075,"anom":4.3,"base":635,"y2018":662},{"lat":19.575,"lon":-98.025,"anom":4.1,"base":681,"y2018":709},{"lat":19.575,"lon":-97.975,"anom":-3.6,"base":600,"y2018":578},{"lat":19.575,"lon":-97.925,"anom":-6,"base":669,"y2018":628},{"lat":19.575,"lon":-97.875,"anom":-4.7,"base":752,"y2018":716},{"lat":19.575,"lon":-97.825,"anom":-6.8,"base":861,"y2018":802},{"lat":19.575,"lon":-97.775,"anom":-7.3,"base":932,"y2018":864},{"lat":19.575,"lon":-97.725,"anom":-14,"base":815,"y2018":701},{"lat":19.525,"lon":-98.825,"anom":37.1,"base":510,"y2018":699},{"lat":19.525,"lon":-98.775,"anom":36,"base":541,"y2018":736},{"lat":19.525,"lon":-98.725,"anom":35.9,"base":718,"y2018":975},{"lat":19.525,"lon":-98.675,"anom":27.1,"base":872,"y2018":1108},{"lat":19.525,"lon":-98.625,"anom":15.9,"base":972,"y2018":1126},{"lat":19.525,"lon":-98.575,"anom":17.4,"base":945,"y2018":1109},{"lat":19.525,"lon":-98.525,"anom":14.1,"base":762,"y2018":869},{"lat":19.525,"lon":-98.475,"anom":6.4,"base":664,"y2018":706},{"lat":19.525,"lon":-98.425,"anom":-0.9,"base":679,"y2018":673},{"lat":19.525,"lon":-98.375,"anom":-1.1,"base":705,"y2018":697},{"lat":19.525,"lon":-98.325,"anom":4.4,"base":681,"y2018":711},{"lat":19.525,"lon":-98.275,"anom":7.5,"base":732,"y2018":786},{"lat":19.525,"lon":-98.225,"anom":-3.9,"base":695,"y2018":668},{"lat":19.525,"lon":-98.175,"anom":-0.4,"base":674,"y2018":671},{"lat":19.525,"lon":-98.125,"anom":-1.7,"base":667,"y2018":656},{"lat":19.525,"lon":-98.075,"anom":2.2,"base":742,"y2018":758},{"lat":19.525,"lon":-98.025,"anom":3.4,"base":758,"y2018":784},{"lat":19.525,"lon":-97.975,"anom":-7,"base":613,"y2018":570},{"lat":19.525,"lon":-97.925,"anom":-5.7,"base":635,"y2018":599},{"lat":19.525,"lon":-97.875,"anom":-3.2,"base":656,"y2018":635},{"lat":19.525,"lon":-97.825,"anom":-4.3,"base":727,"y2018":696},{"lat":19.525,"lon":-97.775,"anom":-4.3,"base":796,"y2018":761},{"lat":19.525,"lon":-97.725,"anom":-13.2,"base":832,"y2018":722},{"lat":19.475,"lon":-98.825,"anom":34.1,"base":485,"y2018":651},{"lat":19.475,"lon":-98.775,"anom":31.5,"base":592,"y2018":778},{"lat":19.475,"lon":-98.725,"anom":30.6,"base":833,"y2018":1089},{"lat":19.475,"lon":-98.675,"anom":27.8,"base":959,"y2018":1226},{"lat":19.475,"lon":-98.625,"anom":23.5,"base":992,"y2018":1225},{"lat":19.475,"lon":-98.575,"anom":17.7,"base":928,"y2018":1093},{"lat":19.475,"lon":-98.525,"anom":14.9,"base":785,"y2018":903},{"lat":19.475,"lon":-98.475,"anom":4.5,"base":680,"y2018":711},{"lat":19.475,"lon":-98.425,"anom":0.2,"base":674,"y2018":675},{"lat":19.475,"lon":-98.375,"anom":-0.2,"base":729,"y2018":728},{"lat":19.475,"lon":-98.325,"anom":-3.1,"base":813,"y2018":787},{"lat":19.475,"lon":-98.275,"anom":3,"base":864,"y2018":890},{"lat":19.475,"lon":-98.225,"anom":-4,"base":779,"y2018":748},{"lat":19.475,"lon":-98.175,"anom":-3.2,"base":749,"y2018":725},{"lat":19.475,"lon":-98.125,"anom":-3.9,"base":786,"y2018":756},{"lat":19.475,"lon":-98.075,"anom":-5.2,"base":841,"y2018":797},{"lat":19.475,"lon":-98.025,"anom":-3.3,"base":796,"y2018":770},{"lat":19.475,"lon":-97.975,"anom":-6,"base":619,"y2018":581},{"lat":19.475,"lon":-97.925,"anom":-2.5,"base":609,"y2018":593},{"lat":19.475,"lon":-97.875,"anom":-2.5,"base":625,"y2018":609},{"lat":19.475,"lon":-97.825,"anom":-1.5,"base":632,"y2018":622},{"lat":19.475,"lon":-97.775,"anom":2.2,"base":639,"y2018":653},{"lat":19.475,"lon":-97.725,"anom":-5.4,"base":590,"y2018":558},{"lat":19.425,"lon":-98.825,"anom":38,"base":471,"y2018":650},{"lat":19.425,"lon":-98.775,"anom":34.3,"base":552,"y2018":742},{"lat":19.425,"lon":-98.725,"anom":33.8,"base":816,"y2018":1092},{"lat":19.425,"lon":-98.675,"anom":25.9,"base":946,"y2018":1192},{"lat":19.425,"lon":-98.625,"anom":20.2,"base":916,"y2018":1101},{"lat":19.425,"lon":-98.575,"anom":16.1,"base":770,"y2018":894},{"lat":19.425,"lon":-98.525,"anom":11.4,"base":668,"y2018":744},{"lat":19.425,"lon":-98.475,"anom":2.1,"base":630,"y2018":643},{"lat":19.425,"lon":-98.425,"anom":-2.9,"base":639,"y2018":621},{"lat":19.425,"lon":-98.375,"anom":-3.5,"base":712,"y2018":688},{"lat":19.425,"lon":-98.325,"anom":-3.3,"base":852,"y2018":824},{"lat":19.425,"lon":-98.275,"anom":-2,"base":929,"y2018":911},{"lat":19.425,"lon":-98.225,"anom":-6.6,"base":814,"y2018":761},{"lat":19.425,"lon":-98.175,"anom":-6.9,"base":814,"y2018":757},{"lat":19.425,"lon":-98.125,"anom":-8.5,"base":892,"y2018":816},{"lat":19.425,"lon":-98.075,"anom":-12.6,"base":1046,"y2018":915},{"lat":19.425,"lon":-98.025,"anom":-7.2,"base":873,"y2018":810},{"lat":19.425,"lon":-97.975,"anom":-10.8,"base":657,"y2018":587},{"lat":19.425,"lon":-97.925,"anom":-7.7,"base":610,"y2018":563},{"lat":19.425,"lon":-97.875,"anom":-5.9,"base":604,"y2018":569},{"lat":19.425,"lon":-97.825,"anom":-3.5,"base":584,"y2018":564},{"lat":19.425,"lon":-97.775,"anom":0.8,"base":590,"y2018":594},{"lat":19.425,"lon":-97.725,"anom":-6.3,"base":527,"y2018":494},{"lat":19.375,"lon":-98.825,"anom":36.2,"base":489,"y2018":666},{"lat":19.375,"lon":-98.775,"anom":29,"base":524,"y2018":675},{"lat":19.375,"lon":-98.725,"anom":27.5,"base":710,"y2018":905},{"lat":19.375,"lon":-98.675,"anom":23.5,"base":919,"y2018":1135},{"lat":19.375,"lon":-98.625,"anom":16.7,"base":1045,"y2018":1220},{"lat":19.375,"lon":-98.575,"anom":9.8,"base":919,"y2018":1009},{"lat":19.375,"lon":-98.525,"anom":5.8,"base":721,"y2018":763},{"lat":19.375,"lon":-98.475,"anom":3.1,"base":649,"y2018":670},{"lat":19.375,"lon":-98.425,"anom":-4,"base":672,"y2018":645},{"lat":19.375,"lon":-98.375,"anom":-4.7,"base":746,"y2018":711},{"lat":19.375,"lon":-98.325,"anom":-5,"base":923,"y2018":877},{"lat":19.375,"lon":-98.275,"anom":-1.2,"base":1199,"y2018":1184},{"lat":19.375,"lon":-98.225,"anom":-8.7,"base":822,"y2018":751},{"lat":19.375,"lon":-98.175,"anom":-7.7,"base":792,"y2018":731},{"lat":19.375,"lon":-98.125,"anom":-9.4,"base":838,"y2018":759},{"lat":19.375,"lon":-98.075,"anom":-11.3,"base":939,"y2018":833},{"lat":19.375,"lon":-98.025,"anom":-7.9,"base":947,"y2018":872},{"lat":19.375,"lon":-97.975,"anom":-15.8,"base":756,"y2018":637},{"lat":19.375,"lon":-97.925,"anom":-13.9,"base":667,"y2018":575},{"lat":19.375,"lon":-97.875,"anom":-11.4,"base":604,"y2018":535},{"lat":19.375,"lon":-97.825,"anom":-8.7,"base":588,"y2018":537},{"lat":19.375,"lon":-97.775,"anom":-4.1,"base":586,"y2018":562},{"lat":19.375,"lon":-97.725,"anom":-9.8,"base":513,"y2018":462},{"lat":19.325,"lon":-98.825,"anom":32.6,"base":508,"y2018":674},{"lat":19.325,"lon":-98.775,"anom":29.6,"base":529,"y2018":686},{"lat":19.325,"lon":-98.725,"anom":28.5,"base":711,"y2018":914},{"lat":19.325,"lon":-98.675,"anom":21.7,"base":981,"y2018":1194},{"lat":19.325,"lon":-98.625,"anom":12.5,"base":1188,"y2018":1337},{"lat":19.325,"lon":-98.575,"anom":4.7,"base":1084,"y2018":1134},{"lat":19.325,"lon":-98.525,"anom":1.1,"base":880,"y2018":889},{"lat":19.325,"lon":-98.475,"anom":0.6,"base":729,"y2018":733},{"lat":19.325,"lon":-98.425,"anom":-2.7,"base":767,"y2018":746},{"lat":19.325,"lon":-98.375,"anom":-6.1,"base":822,"y2018":771},{"lat":19.325,"lon":-98.325,"anom":-1.8,"base":914,"y2018":898},{"lat":19.325,"lon":-98.275,"anom":-2.6,"base":1222,"y2018":1190},{"lat":19.325,"lon":-98.225,"anom":-11.5,"base":708,"y2018":627},{"lat":19.325,"lon":-98.175,"anom":-10.9,"base":742,"y2018":661},{"lat":19.325,"lon":-98.125,"anom":-9,"base":809,"y2018":737},{"lat":19.325,"lon":-98.075,"anom":-10.7,"base":1009,"y2018":901},{"lat":19.325,"lon":-98.025,"anom":-11.5,"base":1239,"y2018":1097},{"lat":19.325,"lon":-97.975,"anom":-19.1,"base":1119,"y2018":906},{"lat":19.325,"lon":-97.925,"anom":-18.4,"base":860,"y2018":702},{"lat":19.325,"lon":-97.875,"anom":-14.8,"base":667,"y2018":568},{"lat":19.325,"lon":-97.825,"anom":-11.6,"base":640,"y2018":566},{"lat":19.325,"lon":-97.775,"anom":-8.5,"base":621,"y2018":568},{"lat":19.325,"lon":-97.725,"anom":-13.9,"base":547,"y2018":471},{"lat":19.275,"lon":-98.825,"anom":32.6,"base":492,"y2018":653},{"lat":19.275,"lon":-98.775,"anom":27.5,"base":574,"y2018":732},{"lat":19.275,"lon":-98.725,"anom":22.4,"base":778,"y2018":952},{"lat":19.275,"lon":-98.675,"anom":18.8,"base":1021,"y2018":1213},{"lat":19.275,"lon":-98.625,"anom":11.6,"base":1135,"y2018":1267},{"lat":19.275,"lon":-98.575,"anom":4.4,"base":1173,"y2018":1224},{"lat":19.275,"lon":-98.525,"anom":4,"base":1077,"y2018":1120},{"lat":19.275,"lon":-98.475,"anom":-2.1,"base":858,"y2018":840},{"lat":19.275,"lon":-98.425,"anom":-6.7,"base":815,"y2018":760},{"lat":19.275,"lon":-98.375,"anom":-7.1,"base":801,"y2018":744},{"lat":19.275,"lon":-98.325,"anom":-9.2,"base":860,"y2018":781},{"lat":19.275,"lon":-98.275,"anom":-8,"base":948,"y2018":871},{"lat":19.275,"lon":-98.225,"anom":-14,"base":802,"y2018":689},{"lat":19.275,"lon":-98.175,"anom":-12.8,"base":763,"y2018":665},{"lat":19.275,"lon":-98.125,"anom":-11.8,"base":855,"y2018":754},{"lat":19.275,"lon":-98.075,"anom":-13.1,"base":1085,"y2018":944},{"lat":19.275,"lon":-98.025,"anom":-13.9,"base":1354,"y2018":1166},{"lat":19.275,"lon":-97.975,"anom":-22.7,"base":1270,"y2018":982},{"lat":19.275,"lon":-97.925,"anom":-23,"base":1112,"y2018":856},{"lat":19.275,"lon":-97.875,"anom":-17,"base":736,"y2018":611},{"lat":19.275,"lon":-97.825,"anom":-8.9,"base":638,"y2018":581},{"lat":19.275,"lon":-97.775,"anom":-10.7,"base":655,"y2018":585},{"lat":19.275,"lon":-97.725,"anom":-14.3,"base":564,"y2018":484},{"lat":19.225,"lon":-98.825,"anom":21.8,"base":561,"y2018":683},{"lat":19.225,"lon":-98.775,"anom":17.8,"base":682,"y2018":804},{"lat":19.225,"lon":-98.725,"anom":17.7,"base":785,"y2018":925},{"lat":19.225,"lon":-98.675,"anom":12.4,"base":952,"y2018":1071},{"lat":19.225,"lon":-98.625,"anom":7.5,"base":1071,"y2018":1152},{"lat":19.225,"lon":-98.575,"anom":2.6,"base":1095,"y2018":1124},{"lat":19.225,"lon":-98.525,"anom":-1.2,"base":1082,"y2018":1069},{"lat":19.225,"lon":-98.475,"anom":-5.5,"base":975,"y2018":921},{"lat":19.225,"lon":-98.425,"anom":-7.7,"base":838,"y2018":773},{"lat":19.225,"lon":-98.375,"anom":-10.6,"base":768,"y2018":686},{"lat":19.225,"lon":-98.325,"anom":-11.6,"base":747,"y2018":661},{"lat":19.225,"lon":-98.275,"anom":-13.1,"base":795,"y2018":691},{"lat":19.225,"lon":-98.225,"anom":-17.2,"base":819,"y2018":678},{"lat":19.225,"lon":-98.175,"anom":-13,"base":787,"y2018":684},{"lat":19.225,"lon":-98.125,"anom":-13.3,"base":784,"y2018":680},{"lat":19.225,"lon":-98.075,"anom":-13.2,"base":909,"y2018":789},{"lat":19.225,"lon":-98.025,"anom":-14.5,"base":1070,"y2018":915},{"lat":19.225,"lon":-97.975,"anom":-20.3,"base":1075,"y2018":857},{"lat":19.225,"lon":-97.925,"anom":-20.1,"base":979,"y2018":782},{"lat":19.225,"lon":-97.875,"anom":-17.7,"base":809,"y2018":665},{"lat":19.225,"lon":-97.825,"anom":-11.4,"base":730,"y2018":646},{"lat":19.225,"lon":-97.775,"anom":-10,"base":720,"y2018":649},{"lat":19.225,"lon":-97.725,"anom":-13,"base":642,"y2018":558},{"lat":19.175,"lon":-98.825,"anom":15.3,"base":575,"y2018":663},{"lat":19.175,"lon":-98.775,"anom":16.4,"base":582,"y2018":677},{"lat":19.175,"lon":-98.725,"anom":16.1,"base":643,"y2018":747},{"lat":19.175,"lon":-98.675,"anom":13.3,"base":896,"y2018":1015},{"lat":19.175,"lon":-98.625,"anom":9.6,"base":1101,"y2018":1207},{"lat":19.175,"lon":-98.575,"anom":4.9,"base":1175,"y2018":1232},{"lat":19.175,"lon":-98.525,"anom":4.6,"base":1137,"y2018":1189},{"lat":19.175,"lon":-98.475,"anom":2.2,"base":983,"y2018":1005},{"lat":19.175,"lon":-98.425,"anom":-5.6,"base":917,"y2018":866},{"lat":19.175,"lon":-98.375,"anom":-13.4,"base":923,"y2018":800},{"lat":19.175,"lon":-98.325,"anom":-11.9,"base":844,"y2018":743},{"lat":19.175,"lon":-98.275,"anom":-10.6,"base":821,"y2018":734},{"lat":19.175,"lon":-98.225,"anom":-14.2,"base":772,"y2018":662},{"lat":19.175,"lon":-98.175,"anom":-14.3,"base":780,"y2018":669},{"lat":19.175,"lon":-98.125,"anom":-14.4,"base":774,"y2018":663},{"lat":19.175,"lon":-98.075,"anom":-11,"base":825,"y2018":734},{"lat":19.175,"lon":-98.025,"anom":-10.8,"base":855,"y2018":763},{"lat":19.175,"lon":-97.975,"anom":-18.8,"base":791,"y2018":642},{"lat":19.175,"lon":-97.925,"anom":-18.2,"base":810,"y2018":662},{"lat":19.175,"lon":-97.875,"anom":-16.9,"base":853,"y2018":709},{"lat":19.175,"lon":-97.825,"anom":-18.8,"base":973,"y2018":790},{"lat":19.175,"lon":-97.775,"anom":-15.8,"base":891,"y2018":750},{"lat":19.175,"lon":-97.725,"anom":-17.2,"base":783,"y2018":648},{"lat":19.125,"lon":-98.825,"anom":11.6,"base":635,"y2018":709},{"lat":19.125,"lon":-98.775,"anom":12.7,"base":598,"y2018":674},{"lat":19.125,"lon":-98.725,"anom":19.8,"base":580,"y2018":695},{"lat":19.125,"lon":-98.675,"anom":17.3,"base":818,"y2018":959},{"lat":19.125,"lon":-98.625,"anom":7.7,"base":1142,"y2018":1230},{"lat":19.125,"lon":-98.575,"anom":6,"base":1287,"y2018":1365},{"lat":19.125,"lon":-98.525,"anom":6.1,"base":1256,"y2018":1333},{"lat":19.125,"lon":-98.475,"anom":2.3,"base":1028,"y2018":1052},{"lat":19.125,"lon":-98.425,"anom":-3.4,"base":932,"y2018":900},{"lat":19.125,"lon":-98.375,"anom":-10.1,"base":916,"y2018":823},{"lat":19.125,"lon":-98.325,"anom":-10.9,"base":866,"y2018":772},{"lat":19.125,"lon":-98.275,"anom":-10.9,"base":879,"y2018":784},{"lat":19.125,"lon":-98.225,"anom":-16.2,"base":825,"y2018":691},{"lat":19.125,"lon":-98.175,"anom":-15.6,"base":839,"y2018":708},{"lat":19.125,"lon":-98.125,"anom":-13.8,"base":827,"y2018":713},{"lat":19.125,"lon":-98.075,"anom":-9.8,"base":835,"y2018":753},{"lat":19.125,"lon":-98.025,"anom":-6.9,"base":800,"y2018":745},{"lat":19.125,"lon":-97.975,"anom":-13.1,"base":703,"y2018":611},{"lat":19.125,"lon":-97.925,"anom":-14.5,"base":723,"y2018":618},{"lat":19.125,"lon":-97.875,"anom":-15.6,"base":773,"y2018":653},{"lat":19.125,"lon":-97.825,"anom":-20,"base":822,"y2018":658},{"lat":19.125,"lon":-97.775,"anom":-19.2,"base":846,"y2018":684},{"lat":19.125,"lon":-97.725,"anom":-19.9,"base":750,"y2018":601},{"lat":19.075,"lon":-98.825,"anom":10.5,"base":771,"y2018":851},{"lat":19.075,"lon":-98.775,"anom":16.2,"base":722,"y2018":839},{"lat":19.075,"lon":-98.725,"anom":17.7,"base":811,"y2018":955},{"lat":19.075,"lon":-98.675,"anom":12.4,"base":1084,"y2018":1219},{"lat":19.075,"lon":-98.625,"anom":6.9,"base":1212,"y2018":1296},{"lat":19.075,"lon":-98.575,"anom":4.5,"base":1314,"y2018":1373},{"lat":19.075,"lon":-98.525,"anom":2.8,"base":1365,"y2018":1403},{"lat":19.075,"lon":-98.475,"anom":0.4,"base":1215,"y2018":1220},{"lat":19.075,"lon":-98.425,"anom":-2.6,"base":1072,"y2018":1045},{"lat":19.075,"lon":-98.375,"anom":-6.5,"base":943,"y2018":882},{"lat":19.075,"lon":-98.325,"anom":-5.8,"base":862,"y2018":813},{"lat":19.075,"lon":-98.275,"anom":-10.3,"base":882,"y2018":791},{"lat":19.075,"lon":-98.225,"anom":-14.9,"base":842,"y2018":717},{"lat":19.075,"lon":-98.175,"anom":-17,"base":896,"y2018":744},{"lat":19.075,"lon":-98.125,"anom":-14.9,"base":878,"y2018":747},{"lat":19.075,"lon":-98.075,"anom":-12.9,"base":972,"y2018":847},{"lat":19.075,"lon":-98.025,"anom":-13.9,"base":1013,"y2018":872},{"lat":19.075,"lon":-97.975,"anom":-17.9,"base":891,"y2018":732},{"lat":19.075,"lon":-97.925,"anom":-18,"base":774,"y2018":635},{"lat":19.075,"lon":-97.875,"anom":-17.9,"base":731,"y2018":600},{"lat":19.075,"lon":-97.825,"anom":-18,"base":730,"y2018":599},{"lat":19.075,"lon":-97.775,"anom":-16.6,"base":733,"y2018":611},{"lat":19.075,"lon":-97.725,"anom":-20,"base":650,"y2018":520},{"lat":19.025,"lon":-98.825,"anom":13.1,"base":769,"y2018":870},{"lat":19.025,"lon":-98.775,"anom":15,"base":844,"y2018":971},{"lat":19.025,"lon":-98.725,"anom":18.6,"base":1000,"y2018":1187},{"lat":19.025,"lon":-98.675,"anom":15.5,"base":1182,"y2018":1365},{"lat":19.025,"lon":-98.625,"anom":9.4,"base":1461,"y2018":1598},{"lat":19.025,"lon":-98.575,"anom":6,"base":1375,"y2018":1457},{"lat":19.025,"lon":-98.525,"anom":5,"base":1275,"y2018":1338},{"lat":19.025,"lon":-98.475,"anom":3.8,"base":1047,"y2018":1087},{"lat":19.025,"lon":-98.425,"anom":-0.3,"base":967,"y2018":965},{"lat":19.025,"lon":-98.375,"anom":-2.6,"base":934,"y2018":909},{"lat":19.025,"lon":-98.325,"anom":-6.8,"base":904,"y2018":842},{"lat":19.025,"lon":-98.275,"anom":-9.1,"base":902,"y2018":820},{"lat":19.025,"lon":-98.225,"anom":-14.2,"base":797,"y2018":684},{"lat":19.025,"lon":-98.175,"anom":-14.8,"base":934,"y2018":796},{"lat":19.025,"lon":-98.125,"anom":-12.3,"base":791,"y2018":694},{"lat":19.025,"lon":-98.075,"anom":-11.9,"base":886,"y2018":781},{"lat":19.025,"lon":-98.025,"anom":-12.1,"base":977,"y2018":859},{"lat":19.025,"lon":-97.975,"anom":-16.5,"base":945,"y2018":789},{"lat":19.025,"lon":-97.925,"anom":-19.7,"base":845,"y2018":679},{"lat":19.025,"lon":-97.875,"anom":-21.6,"base":779,"y2018":610},{"lat":19.025,"lon":-97.825,"anom":-18.8,"base":769,"y2018":625},{"lat":19.025,"lon":-97.775,"anom":-19,"base":778,"y2018":630},{"lat":19.025,"lon":-97.725,"anom":-25.2,"base":644,"y2018":482},{"lat":18.975,"lon":-98.825,"anom":14.1,"base":767,"y2018":875},{"lat":18.975,"lon":-98.775,"anom":16.8,"base":820,"y2018":958},{"lat":18.975,"lon":-98.725,"anom":17,"base":1053,"y2018":1232},{"lat":18.975,"lon":-98.675,"anom":14.5,"base":1247,"y2018":1428},{"lat":18.975,"lon":-98.625,"anom":13,"base":1369,"y2018":1547},{"lat":18.975,"lon":-98.575,"anom":7.7,"base":1200,"y2018":1292},{"lat":18.975,"lon":-98.525,"anom":5.2,"base":1011,"y2018":1064},{"lat":18.975,"lon":-98.475,"anom":1.4,"base":854,"y2018":866},{"lat":18.975,"lon":-98.425,"anom":-2.1,"base":852,"y2018":834},{"lat":18.975,"lon":-98.375,"anom":-7.1,"base":917,"y2018":853},{"lat":18.975,"lon":-98.325,"anom":-8.7,"base":923,"y2018":843},{"lat":18.975,"lon":-98.275,"anom":-9.9,"base":898,"y2018":809},{"lat":18.975,"lon":-98.225,"anom":-12.7,"base":742,"y2018":648},{"lat":18.975,"lon":-98.175,"anom":-13.6,"base":582,"y2018":503},{"lat":18.975,"lon":-98.125,"anom":-17.3,"base":827,"y2018":684},{"lat":18.975,"lon":-98.075,"anom":-14.9,"base":874,"y2018":744},{"lat":18.975,"lon":-98.025,"anom":-12.8,"base":846,"y2018":738},{"lat":18.975,"lon":-97.975,"anom":-13,"base":825,"y2018":718},{"lat":18.975,"lon":-97.925,"anom":-15.6,"base":798,"y2018":674},{"lat":18.975,"lon":-97.875,"anom":-15.9,"base":767,"y2018":645},{"lat":18.975,"lon":-97.825,"anom":-17.2,"base":763,"y2018":632},{"lat":18.975,"lon":-97.775,"anom":-14.2,"base":772,"y2018":662},{"lat":18.975,"lon":-97.725,"anom":-19.4,"base":675,"y2018":544},{"lat":18.925,"lon":-98.825,"anom":14.5,"base":840,"y2018":962},{"lat":18.925,"lon":-98.775,"anom":15.2,"base":838,"y2018":965},{"lat":18.925,"lon":-98.725,"anom":15.4,"base":1078,"y2018":1245},{"lat":18.925,"lon":-98.675,"anom":18,"base":1250,"y2018":1476},{"lat":18.925,"lon":-98.625,"anom":14.5,"base":1237,"y2018":1416},{"lat":18.925,"lon":-98.575,"anom":11.3,"base":1134,"y2018":1262},{"lat":18.925,"lon":-98.525,"anom":7.6,"base":1022,"y2018":1099},{"lat":18.925,"lon":-98.475,"anom":5.1,"base":840,"y2018":883},{"lat":18.925,"lon":-98.425,"anom":0.4,"base":826,"y2018":829},{"lat":18.925,"lon":-98.375,"anom":-5.5,"base":953,"y2018":900},{"lat":18.925,"lon":-98.325,"anom":-8.1,"base":967,"y2018":889},{"lat":18.925,"lon":-98.275,"anom":-12.7,"base":955,"y2018":833},{"lat":18.925,"lon":-98.225,"anom":-12.2,"base":876,"y2018":769},{"lat":18.925,"lon":-98.175,"anom":-14.1,"base":782,"y2018":672},{"lat":18.925,"lon":-98.125,"anom":-14.4,"base":827,"y2018":708},{"lat":18.925,"lon":-98.075,"anom":-14.5,"base":882,"y2018":754},{"lat":18.925,"lon":-98.025,"anom":-16.3,"base":864,"y2018":724},{"lat":18.925,"lon":-97.975,"anom":-16.1,"base":803,"y2018":674},{"lat":18.925,"lon":-97.925,"anom":-15.9,"base":778,"y2018":655},{"lat":18.925,"lon":-97.875,"anom":-14.7,"base":720,"y2018":614},{"lat":18.925,"lon":-97.825,"anom":-15.7,"base":707,"y2018":596},{"lat":18.925,"lon":-97.775,"anom":-14.6,"base":736,"y2018":629},{"lat":18.925,"lon":-97.725,"anom":-19.4,"base":678,"y2018":546},{"lat":18.875,"lon":-98.825,"anom":14.9,"base":863,"y2018":991},{"lat":18.875,"lon":-98.775,"anom":14.4,"base":878,"y2018":1005},{"lat":18.875,"lon":-98.725,"anom":15.4,"base":1035,"y2018":1195},{"lat":18.875,"lon":-98.675,"anom":17.6,"base":1058,"y2018":1244},{"lat":18.875,"lon":-98.625,"anom":15,"base":1032,"y2018":1186},{"lat":18.875,"lon":-98.575,"anom":11,"base":990,"y2018":1100},{"lat":18.875,"lon":-98.525,"anom":10.6,"base":940,"y2018":1040},{"lat":18.875,"lon":-98.475,"anom":6,"base":849,"y2018":900},{"lat":18.875,"lon":-98.425,"anom":2.2,"base":839,"y2018":857},{"lat":18.875,"lon":-98.375,"anom":-4.9,"base":940,"y2018":893},{"lat":18.875,"lon":-98.325,"anom":-6.3,"base":997,"y2018":934},{"lat":18.875,"lon":-98.275,"anom":-7.9,"base":990,"y2018":911},{"lat":18.875,"lon":-98.225,"anom":-11.8,"base":996,"y2018":878},{"lat":18.875,"lon":-98.175,"anom":-11.8,"base":977,"y2018":862},{"lat":18.875,"lon":-98.125,"anom":-14.2,"base":938,"y2018":805},{"lat":18.875,"lon":-98.075,"anom":-16.9,"base":1009,"y2018":839},{"lat":18.875,"lon":-98.025,"anom":-14.8,"base":919,"y2018":783},{"lat":18.875,"lon":-97.975,"anom":-17.9,"base":819,"y2018":673},{"lat":18.875,"lon":-97.925,"anom":-16.1,"base":798,"y2018":670},{"lat":18.875,"lon":-97.875,"anom":-17.9,"base":755,"y2018":619},{"lat":18.875,"lon":-97.825,"anom":-19,"base":750,"y2018":607},{"lat":18.875,"lon":-97.775,"anom":-19,"base":751,"y2018":608},{"lat":18.875,"lon":-97.725,"anom":-23.8,"base":689,"y2018":525},{"lat":18.825,"lon":-98.825,"anom":18.4,"base":912,"y2018":1080},{"lat":18.825,"lon":-98.775,"anom":22.1,"base":928,"y2018":1133},{"lat":18.825,"lon":-98.725,"anom":19.7,"base":1002,"y2018":1199},{"lat":18.825,"lon":-98.675,"anom":17,"base":1001,"y2018":1172},{"lat":18.825,"lon":-98.625,"anom":16.4,"base":1017,"y2018":1183},{"lat":18.825,"lon":-98.575,"anom":13.6,"base":1003,"y2018":1140},{"lat":18.825,"lon":-98.525,"anom":9.8,"base":959,"y2018":1053},{"lat":18.825,"lon":-98.475,"anom":3.1,"base":854,"y2018":881},{"lat":18.825,"lon":-98.425,"anom":5.7,"base":875,"y2018":925},{"lat":18.825,"lon":-98.375,"anom":4.9,"base":950,"y2018":997},{"lat":18.825,"lon":-98.325,"anom":0.8,"base":1019,"y2018":1028},{"lat":18.825,"lon":-98.275,"anom":-1.7,"base":1049,"y2018":1032},{"lat":18.825,"lon":-98.225,"anom":-6.3,"base":1003,"y2018":941},{"lat":18.825,"lon":-98.175,"anom":-6.2,"base":950,"y2018":891},{"lat":18.825,"lon":-98.125,"anom":-10.1,"base":898,"y2018":807},{"lat":18.825,"lon":-98.075,"anom":-14.5,"base":912,"y2018":780},{"lat":18.825,"lon":-98.025,"anom":-13.1,"base":887,"y2018":771},{"lat":18.825,"lon":-97.975,"anom":-17.6,"base":896,"y2018":738},{"lat":18.825,"lon":-97.925,"anom":-21.7,"base":904,"y2018":708},{"lat":18.825,"lon":-97.875,"anom":-18.3,"base":797,"y2018":650},{"lat":18.825,"lon":-97.825,"anom":-17.9,"base":693,"y2018":569},{"lat":18.825,"lon":-97.775,"anom":-20.5,"base":750,"y2018":596},{"lat":18.825,"lon":-97.725,"anom":-25.3,"base":643,"y2018":480},{"lat":18.775,"lon":-98.825,"anom":20.4,"base":972,"y2018":1171},{"lat":18.775,"lon":-98.775,"anom":19.1,"base":918,"y2018":1094},{"lat":18.775,"lon":-98.725,"anom":20.3,"base":948,"y2018":1140},{"lat":18.775,"lon":-98.675,"anom":18.6,"base":990,"y2018":1174},{"lat":18.775,"lon":-98.625,"anom":16.9,"base":1009,"y2018":1180},{"lat":18.775,"lon":-98.575,"anom":16.7,"base":995,"y2018":1161},{"lat":18.775,"lon":-98.525,"anom":14.6,"base":872,"y2018":1000},{"lat":18.775,"lon":-98.475,"anom":11.6,"base":813,"y2018":907},{"lat":18.775,"lon":-98.425,"anom":8.5,"base":849,"y2018":921},{"lat":18.775,"lon":-98.375,"anom":8.1,"base":900,"y2018":973},{"lat":18.775,"lon":-98.325,"anom":8,"base":894,"y2018":966},{"lat":18.775,"lon":-98.275,"anom":2.6,"base":991,"y2018":1016},{"lat":18.775,"lon":-98.225,"anom":-0.3,"base":940,"y2018":937},{"lat":18.775,"lon":-98.175,"anom":-3.8,"base":958,"y2018":921},{"lat":18.775,"lon":-98.125,"anom":-5.4,"base":815,"y2018":771},{"lat":18.775,"lon":-98.075,"anom":-9.8,"base":788,"y2018":711},{"lat":18.775,"lon":-98.025,"anom":-9.6,"base":694,"y2018":628},{"lat":18.775,"lon":-97.975,"anom":-10.8,"base":622,"y2018":555},{"lat":18.775,"lon":-97.925,"anom":-18.1,"base":755,"y2018":618},{"lat":18.775,"lon":-97.875,"anom":-18.3,"base":701,"y2018":572},{"lat":18.775,"lon":-97.825,"anom":-18,"base":638,"y2018":523},{"lat":18.775,"lon":-97.775,"anom":-20,"base":659,"y2018":528},{"lat":18.775,"lon":-97.725,"anom":-26.8,"base":626,"y2018":458},{"lat":18.725,"lon":-98.825,"anom":23.7,"base":945,"y2018":1169},{"lat":18.725,"lon":-98.775,"anom":17.7,"base":905,"y2018":1065},{"lat":18.725,"lon":-98.725,"anom":16,"base":929,"y2018":1077},{"lat":18.725,"lon":-98.675,"anom":13.2,"base":950,"y2018":1076},{"lat":18.725,"lon":-98.625,"anom":13,"base":946,"y2018":1070},{"lat":18.725,"lon":-98.575,"anom":13,"base":921,"y2018":1041},{"lat":18.725,"lon":-98.525,"anom":12.2,"base":871,"y2018":978},{"lat":18.725,"lon":-98.475,"anom":10.2,"base":837,"y2018":922},{"lat":18.725,"lon":-98.425,"anom":10.1,"base":891,"y2018":981},{"lat":18.725,"lon":-98.375,"anom":6.6,"base":901,"y2018":961},{"lat":18.725,"lon":-98.325,"anom":4.9,"base":909,"y2018":954},{"lat":18.725,"lon":-98.275,"anom":2.2,"base":923,"y2018":943},{"lat":18.725,"lon":-98.225,"anom":-2.6,"base":991,"y2018":965},{"lat":18.725,"lon":-98.175,"anom":-4.4,"base":957,"y2018":915},{"lat":18.725,"lon":-98.125,"anom":-7,"base":850,"y2018":791},{"lat":18.725,"lon":-98.075,"anom":-9,"base":775,"y2018":705},{"lat":18.725,"lon":-98.025,"anom":-7.5,"base":691,"y2018":640},{"lat":18.725,"lon":-97.975,"anom":-12.3,"base":664,"y2018":583},{"lat":18.725,"lon":-97.925,"anom":-15.5,"base":691,"y2018":584},{"lat":18.725,"lon":-97.875,"anom":-21.7,"base":750,"y2018":587},{"lat":18.725,"lon":-97.825,"anom":-19.8,"base":653,"y2018":523},{"lat":18.725,"lon":-97.775,"anom":-21.8,"base":708,"y2018":553},{"lat":18.725,"lon":-97.725,"anom":-22.7,"base":629,"y2018":487},{"lat":18.675,"lon":-98.825,"anom":21.5,"base":961,"y2018":1167},{"lat":18.675,"lon":-98.775,"anom":18.8,"base":899,"y2018":1068},{"lat":18.675,"lon":-98.725,"anom":15.8,"base":916,"y2018":1061},{"lat":18.675,"lon":-98.675,"anom":15.4,"base":941,"y2018":1086},{"lat":18.675,"lon":-98.625,"anom":13.3,"base":984,"y2018":1115},{"lat":18.675,"lon":-98.575,"anom":13.3,"base":999,"y2018":1132},{"lat":18.675,"lon":-98.525,"anom":13,"base":921,"y2018":1041},{"lat":18.675,"lon":-98.475,"anom":14.2,"base":851,"y2018":972},{"lat":18.675,"lon":-98.425,"anom":11.4,"base":888,"y2018":989},{"lat":18.675,"lon":-98.375,"anom":10.1,"base":953,"y2018":1049},{"lat":18.675,"lon":-98.325,"anom":5.9,"base":980,"y2018":1038},{"lat":18.675,"lon":-98.275,"anom":2.5,"base":954,"y2018":978},{"lat":18.675,"lon":-98.225,"anom":0.5,"base":926,"y2018":931},{"lat":18.675,"lon":-98.175,"anom":-3,"base":903,"y2018":876},{"lat":18.675,"lon":-98.125,"anom":-6.9,"base":846,"y2018":788},{"lat":18.675,"lon":-98.075,"anom":-8.4,"base":830,"y2018":760},{"lat":18.675,"lon":-98.025,"anom":-6.3,"base":758,"y2018":710},{"lat":18.675,"lon":-97.975,"anom":-11.4,"base":720,"y2018":638},{"lat":18.675,"lon":-97.925,"anom":-14.5,"base":712,"y2018":609},{"lat":18.675,"lon":-97.875,"anom":-19.3,"base":714,"y2018":576},{"lat":18.675,"lon":-97.825,"anom":-20.8,"base":736,"y2018":582},{"lat":18.675,"lon":-97.775,"anom":-22.9,"base":822,"y2018":633},{"lat":18.675,"lon":-97.725,"anom":-25.2,"base":762,"y2018":570},{"lat":18.625,"lon":-98.825,"anom":18.5,"base":1010,"y2018":1197},{"lat":18.625,"lon":-98.775,"anom":16.4,"base":917,"y2018":1067},{"lat":18.625,"lon":-98.725,"anom":16.7,"base":938,"y2018":1095},{"lat":18.625,"lon":-98.675,"anom":15.6,"base":965,"y2018":1115},{"lat":18.625,"lon":-98.625,"anom":11.8,"base":1010,"y2018":1129},{"lat":18.625,"lon":-98.575,"anom":11.5,"base":973,"y2018":1086},{"lat":18.625,"lon":-98.525,"anom":11,"base":935,"y2018":1037},{"lat":18.625,"lon":-98.475,"anom":15.9,"base":878,"y2018":1018},{"lat":18.625,"lon":-98.425,"anom":14.7,"base":812,"y2018":932},{"lat":18.625,"lon":-98.375,"anom":17,"base":914,"y2018":1070},{"lat":18.625,"lon":-98.325,"anom":11,"base":927,"y2018":1029},{"lat":18.625,"lon":-98.275,"anom":5.2,"base":893,"y2018":940},{"lat":18.625,"lon":-98.225,"anom":3.1,"base":882,"y2018":910},{"lat":18.625,"lon":-98.175,"anom":1.7,"base":865,"y2018":880},{"lat":18.625,"lon":-98.125,"anom":-3,"base":843,"y2018":817},{"lat":18.625,"lon":-98.075,"anom":-5.4,"base":864,"y2018":817},{"lat":18.625,"lon":-98.025,"anom":-7.3,"base":821,"y2018":761},{"lat":18.625,"lon":-97.975,"anom":-10.9,"base":749,"y2018":668},{"lat":18.625,"lon":-97.925,"anom":-13,"base":727,"y2018":632},{"lat":18.625,"lon":-97.875,"anom":-17.4,"base":659,"y2018":544},{"lat":18.625,"lon":-97.825,"anom":-19.6,"base":662,"y2018":532},{"lat":18.625,"lon":-97.775,"anom":-21.3,"base":745,"y2018":587},{"lat":18.625,"lon":-97.725,"anom":-24.1,"base":704,"y2018":534},{"lat":18.575,"lon":-98.825,"anom":19.2,"base":1067,"y2018":1273},{"lat":18.575,"lon":-98.775,"anom":19.4,"base":988,"y2018":1179},{"lat":18.575,"lon":-98.725,"anom":16.4,"base":966,"y2018":1124},{"lat":18.575,"lon":-98.675,"anom":15.2,"base":935,"y2018":1078},{"lat":18.575,"lon":-98.625,"anom":12.5,"base":925,"y2018":1040},{"lat":18.575,"lon":-98.575,"anom":12.6,"base":919,"y2018":1035},{"lat":18.575,"lon":-98.525,"anom":13.9,"base":890,"y2018":1014},{"lat":18.575,"lon":-98.475,"anom":16.6,"base":924,"y2018":1077},{"lat":18.575,"lon":-98.425,"anom":17.6,"base":940,"y2018":1106},{"lat":18.575,"lon":-98.375,"anom":17.3,"base":1011,"y2018":1186},{"lat":18.575,"lon":-98.325,"anom":11,"base":956,"y2018":1061},{"lat":18.575,"lon":-98.275,"anom":11.3,"base":872,"y2018":971},{"lat":18.575,"lon":-98.225,"anom":4.7,"base":920,"y2018":963},{"lat":18.575,"lon":-98.175,"anom":1.5,"base":921,"y2018":934},{"lat":18.575,"lon":-98.125,"anom":-2.2,"base":881,"y2018":862},{"lat":18.575,"lon":-98.075,"anom":-6.1,"base":905,"y2018":850},{"lat":18.575,"lon":-98.025,"anom":-6.4,"base":795,"y2018":744},{"lat":18.575,"lon":-97.975,"anom":-7.6,"base":726,"y2018":671},{"lat":18.575,"lon":-97.925,"anom":-9.8,"base":653,"y2018":589},{"lat":18.575,"lon":-97.875,"anom":-11.8,"base":549,"y2018":484},{"lat":18.575,"lon":-97.825,"anom":-17.6,"base":589,"y2018":486},{"lat":18.575,"lon":-97.775,"anom":-19.9,"base":674,"y2018":540},{"lat":18.575,"lon":-97.725,"anom":-22.1,"base":659,"y2018":513}],"rings":[{"label":"0–5 km","anom2018":-12.4},{"label":"5–15 km","anom2018":-12.3},{"label":"15–30 km","anom2018":-7.3},{"label":"30–55 km","anom2018":-0.5}],"daily2018":[{"t":"2018-05-01","p":0.4,"c":68},{"t":"2018-05-02","p":0.3,"c":82},{"t":"2018-05-03","p":0.1,"c":85},{"t":"2018-05-04","p":2.9,"c":94},{"t":"2018-05-05","p":2.2,"c":98},{"t":"2018-05-06","p":0.2,"c":99},{"t":"2018-05-07","p":1.1,"c":94},{"t":"2018-05-08","p":13.5,"c":98},{"t":"2018-05-09","p":9.9,"c":77},{"t":"2018-05-10","p":4.6,"c":75},{"t":"2018-05-11","p":1.3,"c":52},{"t":"2018-05-12","p":6.5,"c":46},{"t":"2018-05-13","p":2.3,"c":72},{"t":"2018-05-14","p":14.2,"c":72},{"t":"2018-05-15","p":0.7,"c":66},{"t":"2018-05-16","p":5.8,"c":48},{"t":"2018-05-17","p":8.8,"c":58},{"t":"2018-05-18","p":1,"c":62},{"t":"2018-05-19","p":3.7,"c":52},{"t":"2018-05-20","p":4.6,"c":60},{"t":"2018-05-21","p":5.3,"c":58},{"t":"2018-05-22","p":6.3,"c":54},{"t":"2018-05-23","p":0.9,"c":56},{"t":"2018-05-24","p":0.1,"c":50},{"t":"2018-05-25","p":0,"c":12},{"t":"2018-05-26","p":0,"c":6},{"t":"2018-05-27","p":0,"c":13},{"t":"2018-05-28","p":0,"c":21},{"t":"2018-05-29","p":0,"c":8},{"t":"2018-05-30","p":0,"c":1},{"t":"2018-05-31","p":0,"c":7},{"t":"2018-06-01","p":0,"c":25},{"t":"2018-06-02","p":0.1,"c":40},{"t":"2018-06-03","p":0,"c":41},{"t":"2018-06-04","p":0,"c":24},{"t":"2018-06-05","p":0,"c":46},{"t":"2018-06-06","p":11,"c":90},{"t":"2018-06-07","p":7.5,"c":94},{"t":"2018-06-08","p":0,"c":79},{"t":"2018-06-09","p":2.1,"c":72},{"t":"2018-06-10","p":6.9,"c":90},{"t":"2018-06-11","p":9,"c":91},{"t":"2018-06-12","p":12.7,"c":100},{"t":"2018-06-13","p":25,"c":99},{"t":"2018-06-14","p":33.9,"c":95},{"t":"2018-06-15","p":4.3,"c":98},{"t":"2018-06-16","p":9.6,"c":88},{"t":"2018-06-17","p":18.7,"c":99},{"t":"2018-06-18","p":16.1,"c":100},{"t":"2018-06-19","p":5.3,"c":100},{"t":"2018-06-20","p":5.2,"c":100},{"t":"2018-06-21","p":0.8,"c":86},{"t":"2018-06-22","p":4,"c":79},{"t":"2018-06-23","p":11.1,"c":81},{"t":"2018-06-24","p":7.4,"c":93},{"t":"2018-06-25","p":11.4,"c":76},{"t":"2018-06-26","p":6.7,"c":96},{"t":"2018-06-27","p":6.8,"c":87},{"t":"2018-06-28","p":11.3,"c":81},{"t":"2018-06-29","p":1.9,"c":48},{"t":"2018-06-30","p":0.1,"c":51},{"t":"2018-07-01","p":0,"c":76},{"t":"2018-07-02","p":0.3,"c":63},{"t":"2018-07-03","p":2.1,"c":80},{"t":"2018-07-04","p":3.4,"c":61},{"t":"2018-07-05","p":0,"c":38},{"t":"2018-07-06","p":0.6,"c":58},{"t":"2018-07-07","p":12.3,"c":91},{"t":"2018-07-08","p":7.3,"c":93},{"t":"2018-07-09","p":6.5,"c":66},{"t":"2018-07-10","p":1.2,"c":57},{"t":"2018-07-11","p":1.8,"c":85},{"t":"2018-07-12","p":0,"c":51},{"t":"2018-07-13","p":2.3,"c":42},{"t":"2018-07-14","p":4.8,"c":81},{"t":"2018-07-15","p":0,"c":89},{"t":"2018-07-16","p":0,"c":66},{"t":"2018-07-17","p":0.2,"c":41},{"t":"2018-07-18","p":0,"c":20},{"t":"2018-07-19","p":0,"c":50},{"t":"2018-07-20","p":0.2,"c":79},{"t":"2018-07-21","p":0,"c":35},{"t":"2018-07-22","p":0,"c":58},{"t":"2018-07-23","p":0,"c":43},{"t":"2018-07-24","p":0,"c":17},{"t":"2018-07-25","p":0,"c":41},{"t":"2018-07-26","p":2.2,"c":31},{"t":"2018-07-27","p":3.6,"c":52},{"t":"2018-07-28","p":0.1,"c":83},{"t":"2018-07-29","p":0,"c":66},{"t":"2018-07-30","p":5.4,"c":51},{"t":"2018-07-31","p":15,"c":91},{"t":"2018-08-01","p":5.9,"c":90},{"t":"2018-08-02","p":2.6,"c":91},{"t":"2018-08-03","p":14.2,"c":98},{"t":"2018-08-04","p":2.3,"c":87},{"t":"2018-08-05","p":14.2,"c":96},{"t":"2018-08-06","p":7,"c":96},{"t":"2018-08-07","p":0.2,"c":87},{"t":"2018-08-08","p":0.6,"c":80},{"t":"2018-08-09","p":1.3,"c":73},{"t":"2018-08-10","p":3.3,"c":60},{"t":"2018-08-11","p":10.7,"c":82},{"t":"2018-08-12","p":12.6,"c":88},{"t":"2018-08-13","p":5.9,"c":48},{"t":"2018-08-14","p":0,"c":44},{"t":"2018-08-15","p":9.2,"c":72},{"t":"2018-08-16","p":0.5,"c":35},{"t":"2018-08-17","p":0.7,"c":63},{"t":"2018-08-18","p":0.5,"c":80},{"t":"2018-08-19","p":19.5,"c":91},{"t":"2018-08-20","p":14.9,"c":94},{"t":"2018-08-21","p":0.1,"c":69},{"t":"2018-08-22","p":4.9,"c":83},{"t":"2018-08-23","p":9.4,"c":33},{"t":"2018-08-24","p":1.6,"c":37},{"t":"2018-08-25","p":0.1,"c":39},{"t":"2018-08-26","p":0.4,"c":78},{"t":"2018-08-27","p":5,"c":89},{"t":"2018-08-28","p":14.2,"c":91},{"t":"2018-08-29","p":12,"c":95},{"t":"2018-08-30","p":9.9,"c":100},{"t":"2018-08-31","p":8.7,"c":79},{"t":"2018-09-01","p":13.2,"c":87},{"t":"2018-09-02","p":2.3,"c":78},{"t":"2018-09-03","p":2.3,"c":70},{"t":"2018-09-04","p":14.8,"c":98},{"t":"2018-09-05","p":22.7,"c":98},{"t":"2018-09-06","p":8.1,"c":83},{"t":"2018-09-07","p":0.6,"c":47},{"t":"2018-09-08","p":5.3,"c":73},{"t":"2018-09-09","p":3.6,"c":73},{"t":"2018-09-10","p":6,"c":97},{"t":"2018-09-11","p":12.4,"c":100},{"t":"2018-09-12","p":16.5,"c":100},{"t":"2018-09-13","p":49.5,"c":94},{"t":"2018-09-14","p":4.7,"c":97},{"t":"2018-09-15","p":4.1,"c":95},{"t":"2018-09-16","p":2.9,"c":95},{"t":"2018-09-17","p":8.1,"c":93},{"t":"2018-09-18","p":2.8,"c":59},{"t":"2018-09-19","p":4.2,"c":66},{"t":"2018-09-20","p":5.1,"c":54},{"t":"2018-09-21","p":7.7,"c":61},{"t":"2018-09-22","p":1.7,"c":50},{"t":"2018-09-23","p":2,"c":60},{"t":"2018-09-24","p":0.4,"c":77},{"t":"2018-09-25","p":6.5,"c":65},{"t":"2018-09-26","p":1.4,"c":54},{"t":"2018-09-27","p":0.4,"c":64},{"t":"2018-09-28","p":3.9,"c":60},{"t":"2018-09-29","p":4.9,"c":80},{"t":"2018-09-30","p":0.6,"c":47},{"t":"2018-10-01","p":0.2,"c":64},{"t":"2018-10-02","p":0.5,"c":82},{"t":"2018-10-03","p":9.3,"c":90},{"t":"2018-10-04","p":4,"c":74},{"t":"2018-10-05","p":1.7,"c":89},{"t":"2018-10-06","p":2,"c":77},{"t":"2018-10-07","p":9.4,"c":93},{"t":"2018-10-08","p":4.5,"c":91},{"t":"2018-10-09","p":3,"c":87},{"t":"2018-10-10","p":16.2,"c":96},{"t":"2018-10-11","p":16.7,"c":97},{"t":"2018-10-12","p":2,"c":96},{"t":"2018-10-13","p":3.2,"c":66},{"t":"2018-10-14","p":5.1,"c":91},{"t":"2018-10-15","p":3.6,"c":90},{"t":"2018-10-16","p":7.5,"c":71},{"t":"2018-10-17","p":0,"c":91},{"t":"2018-10-18","p":0.2,"c":90},{"t":"2018-10-19","p":9.4,"c":62},{"t":"2018-10-20","p":6,"c":91},{"t":"2018-10-21","p":1.8,"c":75},{"t":"2018-10-22","p":0,"c":35},{"t":"2018-10-23","p":0,"c":8},{"t":"2018-10-24","p":0,"c":9},{"t":"2018-10-25","p":0,"c":22},{"t":"2018-10-26","p":0.1,"c":44},{"t":"2018-10-27","p":10.6,"c":80},{"t":"2018-10-28","p":8.8,"c":70},{"t":"2018-10-29","p":1.6,"c":85},{"t":"2018-10-30","p":0,"c":73},{"t":"2018-10-31","p":1.4,"c":60}]};
+const GIBS = (layer, time, matrix, ext) => `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${time ? time + '/' : ''}${matrix}/{z}/{y}/{x}.${ext}`;
+const PLANT = [-98.2455, 19.1218];               // VW de México, OpenStreetMap
+const RING_C = [-98.258, 19.112];                // centre used in the rainfall analysis
+const POPO = [-98.6278, 19.0225], IZTA = [-98.6425, 19.1786], OZOLCO = [-98.5144, 19.1008];
+const iso = d => d.toISOString().slice(0, 10);
+const today = new Date();
+const yesterday = iso(new Date(Date.now() - 30 * 3600e3));   // latest day GIBS has finished: UTC now minus 30 h
 
-  function step() {
-    ctx.globalAlpha = 0.15;                // fade old positions into trails
-    ctx.fillStyle = paper;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = ink;
-    for (const d of dots) {
-      d.x = (d.x + wind.east + (Math.random() - 0.5) * spread + canvas.width) % canvas.width;
-      d.y = (d.y - wind.north + (Math.random() - 0.5) * spread + canvas.height) % canvas.height;
-      ctx.fillRect(d.x, d.y, 2, 2);
-    }
-    requestAnimationFrame(step);
+// ---------- geometry helpers
+const km2deg = (km, lat) => [km / (111.32 * Math.cos(lat * Math.PI / 180)), km / 110.57];
+function circle([lon, lat], km, n = 96) {
+  const [dx, dy] = km2deg(km, lat);
+  const c = []; for (let i = 0; i <= n; i++) { const a = i / n * 2 * Math.PI; c.push([lon + dx * Math.cos(a), lat + dy * Math.sin(a)]); }
+  return c;
+}
+function curve(p0, p1, bend = .25, n = 32) {           // quadratic arc between two points
+  const mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2, dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+  const c = [mx - dy * bend, my + dx * bend], out = [];
+  for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t; out.push([u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0], u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1]]); }
+  return out;
+}
+function head(line, size = .018) {                      // arrowhead triangle at the end of a line
+  const [a, b] = [line[line.length - 2], line[line.length - 1]];
+  const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), w = .45;
+  return [b, [b[0] - size * Math.cos(ang - w), b[1] - size * Math.sin(ang - w)], [b[0] - size * Math.cos(ang + w), b[1] - size * Math.sin(ang + w)], b];
+}
+const fc = features => ({ type: 'FeatureCollection', features });
+const line = (coords, props = {}) => ({ type: 'Feature', properties: props, geometry: { type: 'LineString', coordinates: coords } });
+const poly = (coords, props = {}) => ({ type: 'Feature', properties: props, geometry: { type: 'Polygon', coordinates: [coords] } });
+const arrows = (pairs, bend, size) => { const f = []; pairs.forEach(([a, b]) => { const l = curve(a, b, bend); f.push(line(l)); f.push(poly(head(l, size))); }); return fc(f); };
+
+// ---------- CHIRPS grid
+const g = DATA.grid;
+const anoms = DATA.cells.map(c => c.anom);
+const amax = Math.max(...anoms.map(Math.abs));
+const chirps = fc(DATA.cells.map(c => {
+  const x0 = c.lon - g.dx / 2, x1 = c.lon + g.dx / 2, y0 = c.lat - Math.abs(g.dy) / 2, y1 = c.lat + Math.abs(g.dy) / 2;
+  return poly([[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]], { anom: c.anom, base: c.base, y2018: c.y2018 });
+}));
+
+// ---------- map
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    projection: { type: 'globe' },
+    sky: { 'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 5, 1, 7, 0] },
+    sources: {
+      bm: { type: 'raster', tiles: [GIBS('BlueMarble_ShadedRelief_Bathymetry', '', 'GoogleMapsCompatible_Level8', 'jpeg')], tileSize: 256, maxzoom: 8, attribution: 'NASA GIBS' },
+    },
+    layers: [
+      { id: 'space', type: 'background', paint: { 'background-color': '#05070a' } },
+      { id: 'bm', type: 'raster', source: 'bm' },
+    ],
+  },
+  center: [-99, 19], zoom: 1.6, minZoom: 1, maxZoom: 10, attributionControl: false,
+});
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: 'NASA GIBS · CHIRPS · ERA5' }));
+
+const stamp = document.getElementById('stamp');
+let goesTime = null, goesTried = false;
+
+async function latestGoes() {                         // newest GOES-East frame GIBS can serve
+  const t = new Date(Date.now() - 30 * 60e3);
+  t.setUTCMinutes(Math.floor(t.getUTCMinutes() / 10) * 10, 0, 0);
+  for (let i = 0; i < 9; i++) {
+    const s = t.toISOString().slice(0, 19) + 'Z';
+    try { const r = await fetch(GIBS('GOES-East_ABI_GeoColor', s, 'GoogleMapsCompatible_Level7', 'png').replace('{z}/{y}/{x}', '3/3/2')); if (r.ok) return s; } catch (e) {}
+    t.setUTCMinutes(t.getUTCMinutes() - 10);
   }
-  step();
+  return null;
+}
+const pad = () => innerWidth > 760 ? { left: 400, top: 0, right: 0, bottom: 0 } : { left: 0, top: 60, right: 0, bottom: Math.round(innerHeight * .58) };
+const fmtUTC = s => new Date(s).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+
+const goesP = latestGoes();                         // start probing right away, not after every tile has loaded
+map.once('style.load', async () => {
+  map.addSource('viirs', { type: 'raster', tiles: [GIBS('VIIRS_NOAA20_CorrectedReflectance_TrueColor', yesterday, 'GoogleMapsCompatible_Level9', 'jpg')], tileSize: 256, maxzoom: 9 });
+  map.addLayer({ id: 'viirs', type: 'raster', source: 'viirs', paint: { 'raster-opacity': .95 } });
+  // event imagery (filled per mode)
+  map.addSource('event', { type: 'raster', tiles: [GIBS('MODIS_Aqua_CorrectedReflectance_TrueColor', '2018-07-24', 'GoogleMapsCompatible_Level9', 'jpg')], tileSize: 256, maxzoom: 9 });
+  map.addLayer({ id: 'event', type: 'raster', source: 'event', layout: { visibility: 'none' } });
+  // CHIRPS anomaly grid
+  map.addSource('chirps', { type: 'geojson', data: chirps });
+  map.addLayer({ id: 'chirps', type: 'fill', source: 'chirps', layout: { visibility: 'none' }, paint: {
+    'fill-color': ['interpolate', ['linear'], ['get', 'anom'], -amax, '#a6611a', 0, '#f3efe6', amax, '#018571'],
+    'fill-opacity': .42 } });
+  // hail: rings, reach, speculation
+  map.addSource('hail-rings', { type: 'geojson', data: fc([5, 15, 30].map(k => line(circle(RING_C, k)))) });
+  map.addLayer({ id: 'hail-rings', type: 'line', source: 'hail-rings', layout: { visibility: 'none' }, paint: { 'line-color': '#000', 'line-width': 1.5 } });
+  map.addSource('hail-reach', { type: 'geojson', data: fc([line(circle(PLANT, .5))]) });
+  map.addLayer({ id: 'hail-reach', type: 'line', source: 'hail-reach', layout: { visibility: 'none' }, paint: { 'line-color': '#000', 'line-width': 2.5, 'line-dasharray': [3, 2] } });
+  const spl = [[[-98.45, 19.15], [-98.12, 19.27]], [[-98.45, 19.08], [-98.12, 18.97]]];
+  map.addSource('hail-spec', { type: 'geojson', data: arrows(spl, 0, .022) });
+  map.addLayer({ id: 'hail-spec-case', type: 'line', source: 'hail-spec', layout: { visibility: 'none', 'line-cap': 'round' }, filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#000', 'line-width': 7, 'line-opacity': .55 } });
+  map.addLayer({ id: 'hail-spec', type: 'line', source: 'hail-spec', layout: { visibility: 'none', 'line-cap': 'round' }, filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#fff', 'line-width': 4, 'line-dasharray': [0.1, 2] } });
+  map.addLayer({ id: 'hail-spec-head', type: 'fill', source: 'hail-spec', layout: { visibility: 'none' }, filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#fff' } });
+  // tiemperos: rising air (speculated)
+  const up = [[[-98.40, 19.06], [-98.57, 19.04]], [[-98.40, 19.20], [-98.58, 19.17]], [[-98.75, 18.86], [-98.66, 18.98]], [[-98.48, 18.88], [-98.59, 18.98]]];
+  map.addSource('tiemp-spec', { type: 'geojson', data: arrows(up, .18, .02) });
+  map.addLayer({ id: 'tiemp-spec-case', type: 'line', source: 'tiemp-spec', layout: { visibility: 'none', 'line-cap': 'round' }, filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#000', 'line-width': 7, 'line-opacity': .55 } });
+  map.addLayer({ id: 'tiemp-spec', type: 'line', source: 'tiemp-spec', layout: { visibility: 'none', 'line-cap': 'round' }, filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#fff', 'line-width': 4, 'line-dasharray': [0.1, 2] } });
+  map.addLayer({ id: 'tiemp-spec-head', type: 'fill', source: 'tiemp-spec', layout: { visibility: 'none' }, filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#fff' } });
+
+  goesTime = await goesP; goesTried = true;
+  if (goesTime) {
+    map.addSource('goes', { type: 'raster', tiles: [GIBS('GOES-East_ABI_GeoColor', goesTime, 'GoogleMapsCompatible_Level7', 'png')], tileSize: 256, maxzoom: 7 });
+    map.addLayer({ id: 'goes', type: 'raster', source: 'goes', paint: { 'raster-opacity': .95 } }, 'event');
+  }
+  setMode(mode, false);
+  spin();
+});
+
+// ---------- HTML labels
+const markers = {};
+function pin(group, lnglat, html, cls = '') {
+  const el = document.createElement('div'); el.className = 'pin ' + cls; el.innerHTML = html;
+  const dot = document.createElement('div'); dot.className = 'dot';
+  const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.alignItems = 'center'; wrap.append(el, dot);
+  (markers[group] ??= []).push(new maplibregl.Marker({ element: wrap, anchor: 'bottom' }).setLngLat(lnglat));
+}
+function tag(group, lnglat, html, cls = '') {
+  const el = document.createElement('div'); el.className = 'pin ' + cls; el.style.transform = 'none'; el.innerHTML = html;
+  (markers[group] ??= []).push(new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(lnglat));
+}
+pin('hail-reach', PLANT, 'VW plant<small>3 cannons · 500 m claimed reach</small>', 'reported');
+tag('hail-spec', [-98.12, 19.32], 'Farmers’ account<small>clouds split before the fields</small>', 'speculated');
+pin('tiemp-places', POPO, 'Popocatépetl<small>“Don Goyo” · 5,426 m</small>', 'reported');
+pin('tiemp-places', IZTA, 'Iztaccíhuatl<small>“Rosita” · 5,230 m</small>', 'reported');
+pin('tiemp-places', OZOLCO, 'San Mateo Ozolco<small>tiemperos’ village</small>', 'reported');
+tag('tiemp-spec', [-98.34, 18.96], 'Moist air pushed up the slopes<small>afternoon storms build here</small>', 'speculated');
+function showMarkers(group, on) { (markers[group] || []).forEach(m => on ? m.addTo(map) : m.remove()); }
+
+// ---------- modes
+const body = document.getElementById('body');
+let mode = 'now', vis = {}, spinning = true, hailTimer = null;
+const DAYS = DATA.daily2018;
+const TDAYS = [
+  { d: '2025-03-12', t: '12 March', s: 'San Gregorio · dry season' },
+  { d: '2025-05-03', t: '3 May', s: 'Santa Cruz · first storms' },
+  { d: '2025-08-30', t: '30 August', s: 'Santa Rosa · hail season' },
+];
+const DEFAULTS = {
+  now: { goes: true, viirs: true },
+  hail: { event: true, chirps: true, 'hail-rings': true, 'hail-reach': true, 'hail-spec': true },
+  tiemp: { event: true, 'tiemp-places': true, 'tiemp-spec': true },
+};
+const MAP_LAYERS = { goes: ['goes'], viirs: ['viirs'], event: ['event'], chirps: ['chirps'], 'hail-rings': ['hail-rings'], 'hail-reach': ['hail-reach'], 'hail-spec': ['hail-spec-case', 'hail-spec', 'hail-spec-head'], 'tiemp-places': [], 'tiemp-spec': ['tiemp-spec-case', 'tiemp-spec', 'tiemp-spec-head'] };
+
+function apply() {
+  for (const [k, ids] of Object.entries(MAP_LAYERS)) {
+    const on = !!vis[k];
+    ids.forEach(id => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'));
+    showMarkers(k, on);
+  }
+}
+function setEventTiles(layer, date) {
+  const src = map.getSource('event'); if (src) src.setTiles([GIBS(layer, date, 'GoogleMapsCompatible_Level9', 'jpg')]);
+}
+function setMode(m, fly = true) {
+  mode = m; stopHail();
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
+  body.replaceChildren(document.getElementById('t-' + m).content.cloneNode(true));
+  body.scrollTop = 0;
+  vis = { ...DEFAULTS[m] };
+  body.querySelectorAll('input[data-layer]').forEach(i => { i.checked = !!vis[i.dataset.layer]; i.addEventListener('change', () => { vis[i.dataset.layer] = i.checked; apply(); }); });
+  body.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.go)));
+  if (m === 'now') {
+    stamp.textContent = goesTime ? `Live clouds: GOES-East, ${fmtUTC(goesTime)} · world: VIIRS, ${yesterday}` : goesTried ? `World clouds: VIIRS, ${yesterday} · live GOES frame not reachable` : 'Loading live clouds…';
+    if (fly) map.flyTo({ center: [-99, 19], zoom: 1.6, duration: 2200, padding: { left: 0, top: 0, right: 0, bottom: 0 } });
+    spinning = true;
+  }
+  if (m === 'hail') initHail(fly);
+  if (m === 'tiemp') initTiemp(fly);
+  apply();
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+// ---------- hail cannon
+function initHail(fly) {
+  spinning = false;
+  const s = body.querySelector('#h-slider'); s.max = DAYS.length - 1;
+  const jul = DAYS.findIndex(d => d.t === '2018-07-24');
+  s.value = jul; s.addEventListener('input', () => { stopHail(); showDay(+s.value); });
+  body.querySelector('#h-jul').addEventListener('click', () => { stopHail(); s.value = jul; showDay(jul); });
+  body.querySelector('#h-play').addEventListener('click', () => hailTimer ? stopHail() : playHail());
+  body.querySelector('#lg-min').textContent = `−${Math.round(amax)}%`;
+  body.querySelector('#lg-max').textContent = `+${Math.round(amax)}%`;
+  body.querySelector('#h-rings').textContent = 'Season rain 2018 vs normal: ' + DATA.rings.map(r => `${r.label} ${r.anom2018 > 0 ? '+' : ''}${r.anom2018}%`).join(' · ');
+  showDay(jul);
+  if (fly) map.flyTo({ center: [-98.3, 19.1], zoom: 8.4, duration: 2600, padding: pad() });
+}
+function showDay(i) {
+  const d = DAYS[i]; if (!d || !body.querySelector('#h-date')) return;
+  const date = new Date(d.t + 'T12:00:00Z');
+  body.querySelector('#h-date').textContent = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const auto = d.t >= '2018-05-01' && d.t <= '2018-08-20';
+  body.querySelector('#h-auto').textContent = auto ? 'cannons in automatic mode' : 'after the cannons stopped';
+  body.querySelector('#h-p').textContent = `${d.p.toFixed(1)} mm`;
+  body.querySelector('#h-c').textContent = `${Math.round(d.c)}%`;
+  body.querySelector('#h-pbar').style.width = Math.min(100, d.p / 20 * 100) + '%';
+  body.querySelector('#h-cbar').style.width = d.c + '%';
+  setEventTiles('MODIS_Aqua_CorrectedReflectance_TrueColor', d.t);
+  stamp.textContent = `Clouds: MODIS Aqua, ${d.t} · rain and cloud cover: ERA5 at the plant`;
+}
+function playHail() {
+  const s = body.querySelector('#h-slider'), b = body.querySelector('#h-play');
+  b.textContent = '❚❚ Pause'; b.setAttribute('aria-pressed', 'true');
+  hailTimer = setInterval(() => { s.value = (+s.value + 1) % DAYS.length; showDay(+s.value); }, 1400);
+}
+function stopHail() {
+  if (hailTimer) clearInterval(hailTimer); hailTimer = null;
+  const b = body.querySelector('#h-play'); if (b) { b.textContent = '▶ Play the season'; b.setAttribute('aria-pressed', 'false'); }
+}
+
+// ---------- tiemperos
+function initTiemp(fly) {
+  spinning = false;
+  const box = body.querySelector('#t-days');
+  const pick = k => {
+    box.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === k)));
+    setEventTiles('VIIRS_NOAA20_CorrectedReflectance_TrueColor', TDAYS[k].d);
+    body.querySelector('#t-note').textContent = `Clouds on ${TDAYS[k].t} 2025, VIIRS NOAA-20 early-afternoon pass. Early November thanksgiving has no fixed day, so it is not shown.`;
+    stamp.textContent = `Clouds: VIIRS NOAA-20, ${TDAYS[k].d} · ${TDAYS[k].s}`;
+  };
+  TDAYS.forEach((t, k) => { const b = document.createElement('button'); b.innerHTML = `${t.t}<small>${t.s}</small>`; b.addEventListener('click', () => pick(k)); box.appendChild(b); });
+  pick(2);
+  if (fly) map.flyTo({ center: [-98.52, 19.04], zoom: 8.9, duration: 2600, padding: pad() });
+}
+
+// ---------- slow spin on the start view
+let lastT = 0, userBusy = false;
+['mousedown', 'touchstart', 'wheel'].forEach(e => map.on(e, () => { userBusy = true; }));
+map.on('moveend', () => { userBusy = false; });
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function spin(t = 0) {
+  if (!reduce && spinning && !userBusy && mode === 'now' && map.getZoom() < 3 && t - lastT > 40) {
+    const c = map.getCenter(); c.lng -= .06; map.jumpTo({ center: c }); lastT = t;
+  }
+  requestAnimationFrame(spin);
+}
+setMode('now', false);
 </script>
 </body>
 </html>

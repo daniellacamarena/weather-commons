@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Ways to Touch a Cloud</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@400;600;700&display=swap">
+<style>
+/* Same printed black-on-white treatment as the case plates. Deliberately single-theme. */
+:root{--paper:#ffffff;--ink:#000000;--soft:#3a3a3a;--faint:#e9e9e9;
+  --head:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;--mono:"IBM Plex Mono",Consolas,monospace;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--head);font-size:16px;line-height:1.5;
+  padding:28px max(16px,env(safe-area-inset-left,0px)) 48px max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1{font-size:clamp(1.7rem,4vw,2.6rem);font-weight:700;letter-spacing:.02em;text-transform:uppercase;margin:0;text-wrap:balance}
+h2{font-size:1.05rem;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px}
+.sub{font-family:var(--mono);font-size:.85rem;color:var(--soft);margin:6px 0 0;max-width:80ch}
+.lede{margin:0;max-width:72ch}
+button{font:inherit;color:inherit;background:var(--paper);border:2px solid var(--ink);cursor:pointer}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+/* case switch */
+.switch{display:flex;flex-wrap:wrap;gap:0;border:2px solid var(--ink);width:fit-content;max-width:100%}
+.switch button{flex:1 1 auto;border:0;padding:10px 18px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.95rem;min-height:44px}
+.switch button+button{border-left:2px solid var(--ink)}
+.switch button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.switch small{display:block;font-family:var(--mono);font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem}
+
+/* plates */
+.plates{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:900px){.plates{grid-template-columns:1fr}}
+figure{margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+figcaption{font-family:var(--mono);font-size:.8rem;color:var(--soft);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+figcaption b{font-family:var(--head);color:var(--ink);text-transform:uppercase;letter-spacing:.04em}
+.plate{border:2px solid var(--ink);overflow-x:auto}
+.plate svg{display:block;width:100%;min-width:560px;height:auto}
+.case[hidden]{display:none}
+.hs{cursor:pointer;transition:opacity .2s}
+.hs circle,.hs text{transform-box:fill-box;transform-origin:center}
+.focus .hs{opacity:.22}
+.focus .hs.on{opacity:1}
+.hs.on circle{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.45)}}
+@media (prefers-reduced-motion:reduce){.hs.on circle{animation:none;transform:scale(1.35)}}
+
+/* controls bar: stays on screen while the drawings scroll */
+.controls{position:sticky;top:0;z-index:5;background:var(--paper);display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;padding:10px 0;border-bottom:2px solid var(--ink)}
+@media (max-width:700px){.controls{position:static}.legend .kb{display:none}.switch button+button{border-left:0;border-top:2px solid var(--ink)}.switch{width:100%}.switch button{flex-basis:100%}}
+/* step explorer */
+.explorer{display:flex;flex-direction:column;gap:10px}
+.steps{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.steps button.n{width:44px;height:44px;border-radius:50%;font-weight:700;font-size:1rem;padding:0}
+.steps button.n[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.steps .play{min-height:44px;padding:0 16px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-left:6px}
+.readout{display:grid;grid-template-columns:minmax(200px,1fr) 1.2fr 1.2fr;gap:0;border:2px solid var(--ink)}
+@media (max-width:900px){.readout{grid-template-columns:1fr}}
+.readout>div{padding:14px 16px;min-width:0}
+.readout>div+div{border-left:2px solid var(--ink)}
+@media (max-width:900px){.readout>div+div{border-left:0;border-top:2px solid var(--ink)}}
+.readout .num{font-size:2.4rem;font-weight:700;line-height:1}
+.readout .name{font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:6px}
+.readout p{margin:6px 0 0;font-size:.95rem}
+.readout .who{font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.85rem}
+.tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.75rem;margin-top:6px}
+.tag i{width:14px;height:14px;border-radius:50%;display:inline-block;border:2px solid var(--ink)}
+.tag.water i{background:var(--ink)}
+.tag.claim i{border-style:dashed}
+.tag.none i{border-color:#aaa}
+.readout .muted{color:var(--soft)}
+.legend{font-family:var(--mono);font-size:.8rem;color:var(--soft);display:flex;gap:18px;flex-wrap:wrap}
+
+/* comparison table */
+.tablewrap{overflow-x:auto;border:2px solid var(--ink)}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--ink)}
+tr:last-child th,tr:last-child td{border-bottom:0}
+thead th{border-bottom:2px solid var(--ink);text-transform:uppercase;letter-spacing:.04em;font-size:.9rem}
+tbody th{font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:.85rem;width:20%}
+td{font-size:.95rem;width:40%}
+td+td,th+td{border-left:1px solid var(--ink)}
+.src{font-family:var(--mono);font-size:.78rem;color:var(--soft);border-top:1px solid var(--ink);padding-top:12px;margin:0}
+.src a{color:var(--ink)}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Two ways to touch a cloud</h1>
+    <p class="sub">Horton’s hydrologic cycle (1931) as the baseline · the same numbered steps on each case · Puebla, Mexico</p>
+  </header>
+  <p class="lede">On the left is the water cycle as Robert E. Horton drew it in 1931, with no owners and no interventions. On the right is the same cycle where people have tried to change the weather. One is a hail cannon a car plant fired at storm clouds in 2018. The other is the tiemperos, who have called the rain at the volcanoes for centuries. Choose a step to see what each one does there.</p>
+
+  <div class="controls">
+    <div class="switch" role="group" aria-label="Choose a case">
+      <button type="button" data-case="hail" aria-pressed="true">Hail cannon<small>VW Puebla · 2018 · capital</small></button>
+      <button type="button" data-case="tiemp" aria-pressed="false">Tiemperos<small>Popocatépetl · every year · vernacular</small></button>
+    </div>
+    <div class="steps" id="steps" role="group" aria-label="Steps of the cycle"></div>
+  </div>
+  <section class="explorer" aria-label="What happens at this step">
+    <div class="legend"><span>● solid: what happens to the water</span><span>◌ dashed: what each side says it changes</span><span class="kb">keys ← → move between steps, Esc clears</span></div>
+    <div class="readout" id="readout" aria-live="polite"></div>
+  </section>
+
+  <div class="plates" id="plates">
+    <figure>
+      <figcaption><b>Baseline</b><span>the hydrologic cycle, after Horton (1931)</span></figcaption>
+      <div class="plate">__HORTON__</div>
+    </figure>
+    <figure class="case" data-case="hail">
+      <figcaption><b>Affected · hail cannon</b><span>VW plant, San Lorenzo Almecatla, 2018</span></figcaption>
+      <div class="plate">__HAIL__</div>
+    </figure>
+    <figure class="case" data-case="tiemp" hidden>
+      <figcaption><b>Affected · tiemperos</b><span>Popocatépetl and Iztaccíhuatl</span></figcaption>
+      <div class="plate">__TIEMP__</div>
+    </figure>
+  </div>
+
+
+
+  <section>
+    <h2>Side by side</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th scope="col"></th><th scope="col">Hail cannon · VW Puebla</th><th scope="col">Tiemperos · the volcanoes</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Who acts</th><td>The car plant. Three cannons fired automatically when a weather radar saw a cloud building.</td><td>Tiemperos, graniceros or aureros: village specialists chosen by lightning or by dreams.</td></tr>
+          <tr><th scope="row">What they do to the cloud</th><td>Push it away. One acetylene blast about every 7 seconds.</td><td>Invite it in. They climb to caves and crosses, feed the volcano and pray.</td></tr>
+          <tr><th scope="row">Who benefits</th><td>The plant. New cars were parked in the open.</td><td>The rain-fed milpa of the villages: maize, beans and squash.</td></tr>
+          <tr><th scope="row">Who bears the cost</th><td>Farmers nearby, who said about 2,000 ha of maize were lost.</td><td>The community, with the climb, the offerings and the food.</td></tr>
+          <tr><th scope="row">Time</th><td>One season: May to 20 August 2018.</td><td>A ritual year from March to November, repeated every year.</td></tr>
+          <tr><th scope="row">Knowledge</th><td>Engineering and radar automation, sold as a product.</td><td>Ritual, dreams and reading the clouds, passed on in the community.</td></tr>
+          <tr><th scope="row">Horton steps</th><td>Claims to act at 3–4. The losses show up at 4, 8 and 10. Its paved lot adds 9.</td><td>Claims to act at 3–4. The ritual follows the cycle from 2 to 12, from the cloud to the springs.</td></tr>
+          <tr><th scope="row">Evidence</th><td>Studies have found no measurable effect of hail cannons on hail or rain. July 2018 rain at the plant was 20–35% of normal.</td><td>Not shown to change a cloud. The practice itself is documented by ethnography (Glockner).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="src">Sources: Horton, R. E. (1931), “The field, scope, and status of the science of hydrology”, <i>Transactions, American Geophysical Union</i> 12, p. 193; the baseline is a new drawing after his figure, not a reproduction. Hail cannon: Expansión, 15 and 20 Aug 2018; Xataka México; ERA5 and CHIRPS rainfall at the plant (see <a href="hail-cannon-2018.html">the hail cannon plate</a> and <a href="nubes-almecatla-2018.html">the cloud map</a>). Tiemperos: Julio Glockner Rossainz, “La nube y el sueño”, <i>Ciencias</i> 90, UNAM, 2008; Mario Galeana, “Plegarias para un cráter”, <i>Revista de la Universidad de México</i>, 2025 (see <a href="tiemperos-2025.html">the tiemperos plate</a>). Step 9 on the plant’s lot is a general effect of paving, not a measurement there.</p>
+</main>
+
+<script>
+const STEPS = [
+  {n:1, name:'Evaporation', d:'The sun lifts water vapour off the sea.',
+   hail:['none','Not touched. The vapour comes from far away.'],
+   tiemp:['none','Not touched.']},
+  {n:2, name:'Moist air carried inland', d:'Wind moves the vapour over the land.',
+   hail:['none','Not touched.'],
+   tiemp:['water','Moist air is pushed up the slopes of the volcanoes. The volcanoes really do gather clouds.']},
+  {n:3, name:'Condensation', d:'Rising air cools and the vapour becomes cloud.',
+   hail:['claim','The radar fires the cannon as soon as a cumulus starts to tower. The blast fades within tens of metres, and the cloud base is 1.5–2 km up.'],
+   tiemp:['claim','At El Ombligo the tiempero calls the clouds. Clouds build over the pass on most rainy-season afternoons.']},
+  {n:4, name:'Precipitation', d:'Rain, hail or snow falls from the cloud.',
+   hail:['claim','The cannon was meant to stop hail over the plant. In July 2018 the fields got 20–35% of normal rain, but studies show no measurable effect of cannons, so the cannon cannot be blamed on this alone.'],
+   tiemp:['claim','Rain is invited onto the milpa. On 30 August, graniceros say they turn the hail aside, toward the ravines.']},
+  {n:5, name:'Interception', d:'Leaves and crops catch part of the rain.',
+   hail:['none','Not marked. The cars in the open lot were what the cannon protected from hail.'],
+   tiemp:['none','Not marked.']},
+  {n:6, name:'Transpiration', d:'Plants return water to the air through their leaves.',
+   hail:['none','Not marked. Wilted maize gives little water back.'],
+   tiemp:['water','The growing milpa breathes water back into the air.']},
+  {n:7, name:'Evaporation from land', d:'Soil, ponds and puddles dry under the sun.',
+   hail:['none','Not marked. Cracked soil has little water left to lose.'],
+   tiemp:['none','Not marked.']},
+  {n:8, name:'Infiltration', d:'Rain soaks in through the ground surface.',
+   hail:['water','With little rain, little soaks into the fields.'],
+   tiemp:['water','Rain soaks into the fields.']},
+  {n:9, name:'Surface runoff', d:'What cannot soak in flows downhill over the ground.',
+   hail:['water','The paved car lot sends rain straight off instead of letting it soak in.'],
+   tiemp:['none','Not marked.']},
+  {n:10, name:'Soil moisture', d:'Water held in the soil, where roots take it up.',
+   hail:['water','Dry soil. Farmers said about 2,000 ha of rain-fed maize were lost.'],
+   tiemp:['water','Water in the soil carries the rain-fed milpa through the season.']},
+  {n:11, name:'Percolation', d:'Water drains deeper, down to the water table.',
+   hail:['none','Not shown.'], tiemp:['none','Not shown.']},
+  {n:12, name:'Ground-water flow', d:'Slow flow underground to springs, streams and the sea.',
+   hail:['none','Not shown.'],
+   tiemp:['water','On 3 May, crosses are placed at springs, where ground water comes out, to ask for rain.']},
+  {n:13, name:'Stream flow', d:'Channels carry the water back to the sea.',
+   hail:['none','Not shown.'], tiemp:['none','Not shown.']},
+];
+const TAG = {water:'what happens to the water', claim:'what they say they change', none:'not touched here'};
+let current = 'hail', step = null, timer = null;
+const plates = document.getElementById('plates');
+const stepsEl = document.getElementById('steps');
+const readout = document.getElementById('readout');
+
+STEPS.forEach(s => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'n'; b.textContent = s.n; b.dataset.n = s.n;
+  b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', `Step ${s.n}: ${s.name}`);
+  b.addEventListener('click', () => { stop(); select(step === s.n ? null : s.n); });
+  stepsEl.appendChild(b);
+});
+const play = document.createElement('button');
+play.type = 'button'; play.className = 'play'; play.textContent = '▶ Play the cycle';
+play.addEventListener('click', () => timer ? stop() : start());
+stepsEl.appendChild(play);
+
+function cell(who, [kind, text]) {
+  return `<div><div class="who">${who}</div><span class="tag ${kind}"><i></i>${TAG[kind]}</span><p class="${kind === 'none' ? 'muted' : ''}">${text}</p></div>`;
+}
+function render() {
+  document.querySelectorAll('.switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.case === current)));
+  document.querySelectorAll('figure.case').forEach(f => f.hidden = f.dataset.case !== current);
+  stepsEl.querySelectorAll('button.n').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.n === step)));
+  plates.classList.toggle('focus', step !== null);
+  plates.querySelectorAll('.hs').forEach(g => g.classList.toggle('on', +g.dataset.step === step));
+  if (step === null) {
+    readout.innerHTML = `<div><div class="num">—</div><div class="name">Choose a step</div><p>Pick a number, press play, or click a numbered circle in either drawing.</p></div>` +
+      cell('Hail cannon', ['claim', 'Acts at steps 3–4. The losses show up at 4, 8 and 10.']) +
+      cell('Tiemperos', ['claim', 'Act at steps 3–4. The ritual follows the cycle from 2 to 12.']);
+    return;
+  }
+  const s = STEPS[step - 1];
+  readout.innerHTML = `<div><div class="num">${s.n}</div><div class="name">${s.name}</div><p>${s.d}</p></div>` +
+    cell('Hail cannon', s.hail) + cell('Tiemperos', s.tiemp);
+}
+function select(n) { step = n; render(); }
+function start() {
+  play.textContent = '❚❚ Pause';
+  let n = step && step < 13 ? step : 0;
+  const tick = () => { n = n % 13 + 1; select(n); };
+  tick(); timer = setInterval(tick, 2800);
+}
+function stop() { if (timer) clearInterval(timer); timer = null; play.textContent = '▶ Play the cycle'; }
+
+document.querySelectorAll('.switch button').forEach(b => b.addEventListener('click', () => { current = b.dataset.case; render(); }));
+plates.addEventListener('click', e => {
+  const g = e.target.closest('.hs'); if (!g) return;
+  stop(); select(+g.dataset.step === step ? null : +g.dataset.step);
+});
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input,textarea')) return;
+  if (e.key === 'ArrowRight') { stop(); select(step ? step % 13 + 1 : 1); }
+  if (e.key === 'ArrowLeft') { stop(); select(step ? (step + 11) % 13 + 1 : 13); }
+  if (e.key === 'Escape') { stop(); select(null); }
+});
+render();
+</script>
+</body>
+</html>
